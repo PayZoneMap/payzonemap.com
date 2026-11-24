@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=c4ca8bf142").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -14,6 +14,10 @@ const STR = {
   placeHint: "Type a city. If yours isn't listed, pick the nearest metro or \u201cElsewhere in\u201d your state.",
   kindMetro: "Metro area",
   kindState: "Outside the listed metros",
+  kindInMetro: "{county}, part of the {metro} metro",
+  kindOutside: "{county}, outside the listed metros",
+  optTown: "town",
+  optCounty: "county",
   optMetro: "metro",
   optState: "rest of state",
   elsewhere: "Elsewhere in {state}",
@@ -52,6 +56,8 @@ const STR = {
     "Zones change. Each row shows when we last checked the company's page."
   ],
   aboutHeading: "Where this comes from",
+  contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
+  contactEmail: "salesforcegirl+zone@gmail.com",
   about: [
     "Company zones come from each company's own careers page, linked in its row. Where a company lists cities, we matched each city to its metro area.",
     "Price figures are the Bureau of Economic Analysis Regional Price Parities for {year}, all items and housing. 100 is the US average.",
@@ -82,7 +88,7 @@ function band(v) { return STR.bands[v < 97 ? 0 : v < 103 ? 1 : v < 110 ? 2 : 3];
 // place's zone at each company and the page only looks it up.
 // answers[placeId][companyIndex] = [zoneIndex or -1, whyText, labelText or -1]
 function zoneFor(co, place) {
-  const a = DATA.answers[place.id][DATA.companies.list.indexOf(co)];
+  const a = DATA.answers[place.answerId || place.id][DATA.companies.list.indexOf(co)];
   return { zone: a[0] < 0 ? null : co.zones[a[0]], why: DATA.text[a[1]], label: a[2] < 0 ? undefined : DATA.text[a[2]] };
 }
 
@@ -90,7 +96,9 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 
 function render(place, isExample) {
   document.getElementById("example-flag").hidden = !isExample;
-  document.getElementById("place-kind").textContent = place.kind === "metro" ? t("kindMetro") : t("kindState");
+  document.getElementById("place-kind").textContent = place.county
+    ? (place.kind === "metro" ? t("kindInMetro", { county: place.countyName, metro: place.metro.name }) : t("kindOutside", { county: place.countyName }))
+    : (place.kind === "metro" ? t("kindMetro") : t("kindState"));
   document.getElementById("place-name").textContent = place.label;
   const all = place.kind === "metro" ? place.metro.all : place.state.all;
   document.getElementById("fact-all").textContent = pct(all);
@@ -140,6 +148,11 @@ for (const [id, key] of [["title","title"],["lede","lede"],["place-label","place
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
 }
+{
+  const c = document.getElementById("contact");
+  const mail = el("a", "", t("contactEmail")); mail.href = "mailto:" + t("contactEmail");
+  c.append(t("contact"), mail, ".");
+}
 document.getElementById("next-list").append(...STR.next.map(s => el("li", "", s)));
 document.getElementById("about-list").append(...STR.about.map(s =>
   el("li", "", s.replace("{year}", DATA.year).replace("{bay}", DATA.companies.bayNote))));
@@ -148,21 +161,51 @@ document.getElementById("about-list").append(...STR.about.map(s =>
 const input = document.getElementById("place-input");
 const list = document.getElementById("place-options");
 let matches = [], active = -1;
+// Towns and counties load from towns.json after the page shows. Each one
+// resolves to its county, and the county to its metro or "Elsewhere in" its
+// state, so a town anywhere gets an answer (added for Lakeport, CA, which is
+// in no metro).
+const KEYS = new Map();
+let TOWNS = [];
+const countyById = {};
+function keyOf(p) { let k = KEYS.get(p); if (!k) { k = norm(p.name || p.label); KEYS.set(p, k); } return k; }
+function countyPlace(fips, name, townName) {
+  const base = placeForCounty(fips);
+  if (!base) return null;
+  const st = (stateByFips[fips.slice(0, 2)] || {}).st;
+  return { ...base, answerId: base.id, hashId: "c" + fips, county: fips, countyName: name + ", " + st,
+           name: townName || name, label: (townName || name) + ", " + st, town: !!townName };
+}
+fetch("towns.json?v=5f16f29d2f").then(r => r.json()).then(lines => {
+  for (const line of lines) {
+    const [name, st, fips, isCounty] = line.split("|");
+    if (isCounty) countyById[fips] = name;
+  }
+  for (const line of lines) {
+    const [name, st, fips, isCounty] = line.split("|");
+    const p = countyPlace(fips, countyById[fips] || fips, isCounty ? null : name);
+    if (p) TOWNS.push(p);
+  }
+  if (location.hash.startsWith("#c")) fromHash();
+  if (input.value.trim() && document.activeElement === input) { matches = search(input.value); showOptions(); }
+}).catch(() => { /* metro and state search still works */ });
 function norm(s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.]/g, ""); }
 function search(q) {
   const n = norm(q.trim());
   if (!n) return [];
   const scored = [];
-  for (const p of PLACES) {
-    const L = norm(p.label);
-    const parts = L.split(/[-,\s]+/);
+  const score = (p, k, bump) => {
     let s = -1;
-    if (L.startsWith(n)) s = 0;
-    else if (parts.some(w => w.startsWith(n))) s = 1;
-    else if (L.includes(n)) s = 2;
-    if (p.kind === "state" && s >= 0) s += 0.5;
-    if (s >= 0) scored.push([s, p]);
-  }
+    if (k === n) s = 0;
+    else if (k.startsWith(n)) s = 1;
+    else if (k.split(/[-,\s]+/).some(w => w.startsWith(n))) s = 2;
+    else if (n.length > 2 && k.includes(n)) s = 3;
+    if (s >= 0) scored.push([s + bump, p]);
+  };
+  // Metros first: "nashville" should offer the Nashville metro before the
+  // small towns named Nashville in other states.
+  for (const p of PLACES) score(p, keyOf(p), p.kind === "state" ? 0.6 : -1.2);
+  for (const p of TOWNS) score(p, keyOf(p), p.town ? 0 : 0.4);
   return scored.sort((a, b) => a[0] - b[0] || a[1].label.localeCompare(b[1].label)).slice(0, 12).map(x => x[1]);
 }
 function showOptions() {
@@ -175,7 +218,7 @@ function showOptions() {
   matches.forEach((p, i) => {
     const li = el("li"); li.id = "opt-" + i; li.setAttribute("role", "option");
     li.setAttribute("aria-selected", i === active ? "true" : "false");
-    li.append(el("span", "", p.label), el("span", "kind", p.kind === "metro" ? t("optMetro") : t("optState")));
+    li.append(el("span", "", p.label), el("span", "kind", p.county ? (p.town ? t("optTown") : t("optCounty")) : p.kind === "metro" ? t("optMetro") : t("optState")));
     li.addEventListener("mousedown", e => { e.preventDefault(); choose(p); });
     list.append(li);
   });
@@ -185,7 +228,7 @@ function showOptions() {
 function choose(p) {
   input.value = p.label; matches = []; active = -1;
   list.hidden = true; input.setAttribute("aria-expanded", "false");
-  try { history.replaceState(null, "", "#" + p.id); } catch (e) { /* some frames refuse */ }
+  try { history.replaceState(null, "", "#" + (p.hashId || p.id)); } catch (e) { /* some frames refuse */ }
   render(p, false);
 }
 
@@ -223,7 +266,8 @@ function paintMap() {
 function outlinePlace(place) {
   currentPlace = place;
   if (!youPath || !window.topojson || !MAPTOPO) return;
-  const geoms = MAPTOPO.objects.counties.geometries.filter(g => placeForCounty(g.id) === place);
+  const geoms = MAPTOPO.objects.counties.geometries.filter(g =>
+    place.county ? g.id === place.county : placeForCounty(g.id) === place);
   youPath.setAttribute("d", geoms.length ? pathOf(topojson.merge(MAPTOPO, geoms)) : "");
 }
 function pathOf(geom) {
@@ -241,7 +285,7 @@ async function initMap() {
   mapSel.value = "Block";
   try {
     if (!window.topojson) throw new Error("topojson-client missing");
-    MAPTOPO = await (await fetch("counties.json")).json();
+    MAPTOPO = await (await fetch("counties.json?v=d907231047")).json();
   } catch (e) {
     document.getElementById("map-loading").textContent = t("mapFailed");
     return;
@@ -262,7 +306,11 @@ async function initMap() {
         zone: z.zone ? (z.label || z.zone) : t("mapNotListed"), company: co.name });
     };
     p.addEventListener("mouseenter", show);
-    p.addEventListener("click", () => { show(); if (c.place) { input.value = c.place.label; render(c.place, false); } });
+    p.addEventListener("click", () => {
+      show();
+      const cp = countyPlace(c.id, countyById[c.id] || c.name);
+      if (cp) { input.value = cp.label; try { history.replaceState(null, "", "#" + cp.hashId); } catch (e) {} render(cp, false); }
+    });
     counties.push(c); svg.append(p);
   }
   const states = document.createElementNS(SVGNS, "path");
@@ -288,7 +336,8 @@ input.addEventListener("keydown", e => {
 input.addEventListener("blur", () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); });
 
 function fromHash() {
-  const p = placeById[location.hash.slice(1)];
+  const h = location.hash.slice(1);
+  const p = placeById[h] || (h.startsWith("c") && countyById[h.slice(1)] ? countyPlace(h.slice(1), countyById[h.slice(1)]) : null);
   if (p) { input.value = p.label; render(p, false); return true; }
   return false;
 }
