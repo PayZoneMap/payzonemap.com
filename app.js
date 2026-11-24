@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=a8027e6fbb").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=c3f13dce3a").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -487,7 +487,7 @@ render = (place, isExample) => { shownPlace = place; shownExample = isExample; r
 let PAY = null, payShown = 50;
 const payEls = { role: document.getElementById("pay-role"), level: document.getElementById("pay-level"),
   covers: document.getElementById("pay-covers"), q: document.getElementById("pay-q") };
-fetch("pay.json?v=003f05a138").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=50664b7a6c").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
