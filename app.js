@@ -96,6 +96,20 @@ const STR = {
   worldLink: "See the Office of Foreign Assets Control's sanctions programs",
   payHeading: "Posted pay ranges for {place}",
   payHeadingCo: "Posted pay ranges at {company} for {place}",
+  payHeadingAll: "Posted pay ranges in every zone",
+  payHeadingAllCo: "Posted pay ranges at {company}, every zone",
+  payIntroAll: "Each range is the company's own, from a current job posting, with the zone it applies to. Read {date}. Search a role or title to see what it pays across companies and zones. The level is our match from the job title, on an IC1 to IC7 and M1 to M7 scale; companies use their own ladders.",
+  payHourly: "{range} an hour",
+  payAmt: "Pay amount",
+  payAmtHint: "Enter a yearly figure like 150k, or an hourly rate like 25, to see which postings have a range that includes it.",
+  payAmtBad: "Enter a number, like 150k or 25.",
+  payAmtCovers: "Matching {covers} ranges only. Change \u201cWhat the range covers\u201d to match another kind of pay.",
+  payCountAmt: "{p} at {c} have a range that includes {amt} ({covers}): {n}.",
+  payN: { posting: ["{n} posting", "{n} postings"], company: ["{n} company", "{n} companies"], range: ["{n} range", "{n} ranges"] },
+  payByRole: "By role type: {list}.",
+  payWhere: "Location",
+  payWhereHere: "Zone for {place}",
+  payWhereAll: "Every zone",
   payIntro: "Each range is the company's own, from a current job posting, for the zone this place falls in. Read {date}. The level is our match from the job title, on an IC1 to IC7 and M1 to M7 scale; companies use their own ladders.",
   payRole: "Role type",
   payLevel: "Level",
@@ -103,7 +117,7 @@ const STR = {
   payQ: "Job title contains",
   payAny: "Any",
   payNoLevel: "Level not stated",
-  payCount: "{n} ranges from {p} postings at {c} companies.",
+  payCount: "{n} from {p} at {c}.",
   payNone: "No current postings match. Try another role type or level, or clear the title search.",
   payMore: "Show more",
   pthJob: "Job",
@@ -256,7 +270,7 @@ function render(place, isExample) {
 }
 
 // Static text
-for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["pay-where-label","payWhere"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pay-amt-label","payAmt"],["pay-amt-hint","payAmtHint"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["story-link","storyLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
@@ -484,44 +498,94 @@ render = (place, isExample) => { shownPlace = place; shownExample = isExample; r
 // to their zones. The company's own words come first; our IC/M level sits
 // beside it, marked as matched. Ranges that cover different things (base,
 // bonus included, on-target earnings) are labelled and never combined.
-let PAY = null, payShown = 50;
-const payEls = { role: document.getElementById("pay-role"), level: document.getElementById("pay-level"),
-  covers: document.getElementById("pay-covers"), q: document.getElementById("pay-q") };
-fetch("pay.json?v=50664b7a6c").then(r => r.ok ? r.json() : null).then(p => {
+let PAY = null, payShown = 50, payWhereTouched = false;
+// Role search (24 Nov, Randi): "Every zone" lets a role be looked up without
+// picking a place first. It starts on "Every zone" until a place is chosen.
+const payEls = { where: document.getElementById("pay-where"), role: document.getElementById("pay-role"), level: document.getElementById("pay-level"),
+  covers: document.getElementById("pay-covers"), q: document.getElementById("pay-q"), amt: document.getElementById("pay-amt") };
+// Pay search (24 Nov, Randi): enter a number, see postings whose range includes
+// it. Ranges are matched only against ranges that cover the same kind of pay:
+// with "Any" chosen, it switches to base pay and says so. Counts, no averages.
+let payCoversAuto = false;
+function payAmountOf(s) {
+  s = (s || "").toLowerCase().replace(/[$,\s]/g, "");
+  const hr = /(\/h(ou)?r|perhour|anhour|hourly|\/h)$/.test(s);
+  s = s.replace(/(\/h(ou)?r|perhour|anhour|hourly|\/h)$/, "");
+  const m = s.match(/^(\d+(?:\.\d+)?)(k|m)?$/);
+  if (!m) return null;
+  const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
+  return hr && v >= 1000 ? null : v;
+}
+fetch("pay.json?v=6820ee0bd2").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
   payEls.level.append(new Option(t("payAny"), ""), ...p.levels.map(l => new Option(STR.levelNames[l] || l, l)), new Option(t("payNoLevel"), "none"));
   payEls.covers.append(new Option(t("payAny"), ""), ...p.covers.map((c, i) => new Option(c, String(i))));
-  for (const e of Object.values(payEls)) e.addEventListener("input", () => { payShown = 50; renderPay(); });
+  payEls.where.append(new Option("", "here"), new Option(t("payWhereAll"), "all"));
+  payEls.where.value = shownExample ? "all" : "here";
+  for (const e of Object.values(payEls)) e.addEventListener("input", () => { payShown = 50; payWhereTouched ||= e === payEls.where; renderPay(); });
   renderPay();
 }).catch(() => {});
 const money = n => "$" + Math.round(n).toLocaleString("en-US");
+const nOf = (what, n) => STR.payN[what][n === 1 ? 0 : 1].replace("{n}", n.toLocaleString("en-US"));
+// Hourly jobs (customer experience, SDRs, interns) post an hourly rate. A range
+// under $1,000 is hourly and says so; it used to read as "$21 - $25" beside salaries.
+const hourly = mx => mx < 1000;
+const cents = n => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const payAmount = (mn, mx) => hourly(mx) ? t("payHourly", { range: cents(mn) + " \u2013 " + cents(mx) }) : money(mn) + " \u2013 " + money(mx);
 function renderPay() {
   const sec = document.getElementById("pay-section");
   if (!PAY || !shownPlace) { sec.hidden = true; return; }
   sec.hidden = false;
   const pid = shownPlace.answerId || shownPlace.id, ans = DATA.answers[pid];
   const coIdx = selectedCompany ? DATA.companies.list.indexOf(selectedCompany) : -1;
-  document.getElementById("pay-heading").textContent = selectedCompany
-    ? t("payHeadingCo", { company: selectedCompany.name, place: shownPlace.label }) : t("payHeading", { place: shownPlace.label });
-  document.getElementById("pay-intro").textContent = t("payIntro", { date: PAY.snapshot });
+  // Until someone picks a Location themselves, it follows the place: every zone
+  // for the opening example, the place's zone once they choose one.
+  if (!payWhereTouched) payEls.where.value = shownExample ? "all" : "here";
+  payEls.where.options[0].text = t("payWhereHere", { place: shownPlace.label });
+  const all = payEls.where.value === "all";
+  document.getElementById("pay-heading").textContent = all
+    ? (selectedCompany ? t("payHeadingAllCo", { company: selectedCompany.name }) : t("payHeadingAll"))
+    : selectedCompany ? t("payHeadingCo", { company: selectedCompany.name, place: shownPlace.label }) : t("payHeading", { place: shownPlace.label });
+  document.getElementById("pay-intro").textContent = t(all ? "payIntroAll" : "payIntro", { date: PAY.snapshot });
+  const amtRaw = payEls.amt.value.trim(), amt = amtRaw ? payAmountOf(amtRaw) : null;
+  if (amt !== null && payEls.covers.value === "") { payEls.covers.value = "0"; payCoversAuto = true; }
+  if (!amtRaw && payCoversAuto) { payEls.covers.value = ""; payCoversAuto = false; }
+  if (payEls.covers.value !== "0") payCoversAuto = payCoversAuto && payEls.covers.value === "0";
+  const amtNote = document.getElementById("pay-amt-note");
+  amtNote.textContent = amtRaw && amt === null ? t("payAmtBad")
+    : amt !== null ? t("payAmtCovers", { covers: PAY.covers[+payEls.covers.value].toLowerCase() }) : "";
   const role = payEls.role.value, level = payEls.level.value, cov = payEls.covers.value, q = norm(payEls.q.value.trim());
   const hits = PAY.rows.filter(r => {
     const [ci, pi, zi, , , covers, lvlR] = r, post = PAY.postings[pi];
     if (coIdx >= 0 && ci !== coIdx) return false;
-    if (zi !== -1 && ans[ci][0] !== zi) return false;
-    if (zi === -1 && ans[ci][0] < 0) return false;
+    if (!all && zi !== -1 && ans[ci][0] !== zi) return false;
+    if (!all && zi === -1 && ans[ci][0] < 0) return false;
     if (role !== "" && String(post[1]) !== role) return false;
     if (cov !== "" && String(covers) !== cov) return false;
     const lv = lvlR || post[2];
     if (level === "none" ? !!lv : (level !== "" && lv !== level)) return false;
     if (q && !norm(post[0]).includes(q)) return false;
+    if (amt !== null && (hourly(amt) !== hourly(r[4]) || amt < r[3] || amt > r[4])) return false;
     return true;
   });
-  hits.sort((a, b) => b[4] - a[4]);
+  // Every zone: keep each posting's zones together, highest-paid posting first.
+  if (all) {
+    const top = new Map();
+    for (const r of hits) top.set(r[1], Math.max(top.get(r[1]) || 0, r[4]));
+    hits.sort((a, b) => top.get(b[1]) - top.get(a[1]) || a[1] - b[1] || a[2] - b[2]);
+  } else hits.sort((a, b) => b[4] - a[4]);
   const posts = new Set(hits.map(r => r[1])), cos = new Set(hits.map(r => r[0]));
-  document.getElementById("pay-count").textContent = hits.length ? t("payCount", { n: hits.length, p: posts.size, c: cos.size }) : t("payNone");
+  let countText = !hits.length ? t("payNone") : amt !== null
+    ? t("payCountAmt", { p: nOf("posting", posts.size), c: nOf("company", cos.size), n: nOf("range", hits.length), amt: hourly(amt) ? t("payHourly", { range: cents(amt) }) : money(amt), covers: PAY.covers[+cov].toLowerCase() })
+    : t("payCount", { n: nOf("range", hits.length), p: nOf("posting", posts.size), c: nOf("company", cos.size) });
+  if (amt !== null && hits.length) {
+    const fam = new Map();
+    for (const pi of posts) { const f = PAY.families[PAY.postings[pi][1]]; fam.set(f, (fam.get(f) || 0) + 1); }
+    countText += " " + t("payByRole", { list: [...fam].sort((a, b) => b[1] - a[1]).map(([f, n]) => f + " " + n).join(", ") });
+  }
+  document.getElementById("pay-count").textContent = countText;
   const tb = document.getElementById("pay-rows"); tb.replaceChildren();
   for (const [ci, pi, zi, mn, mx, covers, lvlR, r8] of hits.slice(0, payShown)) {
     const co = DATA.companies.list[ci], post = PAY.postings[pi], tr = document.createElement("tr");
@@ -531,14 +595,14 @@ function renderPay() {
     const tdL = el("td"); tdL.append(el("div", "", lv ? (STR.levelNames[lv] || lv) : t("payNoLevel")));
     const word = lvlR ? r8 : post[6];
     if (lv) tdL.append(el("div", "sub", word ? (lvlR ? t("payFromRange", { word }) : t("payFromTitle", { word })) : ""));
-    const tdR = el("td"); tdR.append(el("div", "amt", money(mn) + " \u2013 " + money(mx)));
+    const tdR = el("td"); tdR.append(el("div", "amt", payAmount(mn, mx)));
     tdR.append(el("div", "sub", zi === -1 ? t("payAnyZone") : co.zones[zi]));
     const tdC = el("td"); tdC.append(el("span", "tag", PAY.covers[covers]));
     if (post[5].length) tdC.append(el("div", "sub", t("payAlso", { what: post[5].map(w => STR.payAlsoWords[w]).join(", ") })));
     const wr = el("a", "wrong", t("wrong"));
     wr.href = "mailto:" + t("contactEmail") + "?subject=" + encodeURIComponent(t("payWrongSubject", { company: co.name, title: post[0] }))
       + "&body=" + encodeURIComponent(t("payWrongBody", { title: post[0], company: co.name, level: lv ? (STR.levelNames[lv] || lv) : t("payNoLevel"),
-        range: money(mn) + " - " + money(mx), zone: zi === -1 ? t("payAnyZone") : co.zones[zi], covers: PAY.covers[covers], url: post[3],
+        range: payAmount(mn, mx), zone: zi === -1 ? t("payAnyZone") : co.zones[zi], covers: PAY.covers[covers], url: post[3],
         page: location.origin + location.pathname + location.hash }));
     tdC.append(wr);
     tr.append(tdJ, tdL, tdR, tdC); tb.append(tr);

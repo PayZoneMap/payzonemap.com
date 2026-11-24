@@ -104,11 +104,15 @@
     <h2 id="pay-heading"></h2>
     <p class="hint" id="pay-intro"></p>
     <div class="payfilters">
+      <div><label for="pay-where" id="pay-where-label"></label><select id="pay-where"></select></div>
       <div><label for="pay-role" id="pay-role-label"></label><select id="pay-role"></select></div>
       <div><label for="pay-level" id="pay-level-label"></label><select id="pay-level"></select></div>
       <div><label for="pay-covers" id="pay-covers-label"></label><select id="pay-covers"></select></div>
       <div class="grow"><label for="pay-q" id="pay-q-label"></label><input id="pay-q" type="search" autocomplete="off"></div>
+      <div><label for="pay-amt" id="pay-amt-label"></label><input id="pay-amt" type="text" inputmode="decimal" autocomplete="off" aria-describedby="pay-amt-hint"></div>
     </div>
+    <p class="hint" id="pay-amt-hint"></p>
+    <p class="hint" id="pay-amt-note" aria-live="polite"></p>
     <p class="mapcap" id="pay-count" aria-live="polite"></p>
     <p class="hint" id="pay-coverage"></p>
     <details class="paycov" id="pay-coverage-all"><summary id="pay-coverage-summary"></summary><ul id="pay-coverage-list"></ul></details>
@@ -146,6 +150,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=f199256a33"></script>
+<script src="app.js?v=3c878262ea"></script>
 </body>
 </html>
