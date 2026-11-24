@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=c3f13dce3a").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=8fc62c5b10").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -516,7 +516,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=6820ee0bd2").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=51b090d980").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
