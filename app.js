@@ -1,0 +1,297 @@
+// Loaded from data.json, built by the private App repo. Nothing here decides
+// a zone; see zoneFor below.
+fetch("data.json").then(r => r.json()).then(main).catch(() => {
+  document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
+});
+
+function main(DATA) {
+
+// Every visible string lives here, one whole sentence per key (house rule for new products).
+const STR = {
+  title: "Which pay zone am I in?",
+  lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live to see the zone you'd land in at companies that publish their lists.",
+  placeLabel: "Where do you live?",
+  placeHint: "Type a city. If yours isn't listed, pick the nearest metro or \u201cElsewhere in\u201d your state.",
+  kindMetro: "Metro area",
+  kindState: "Outside the listed metros",
+  optMetro: "metro",
+  optState: "rest of state",
+  elsewhere: "Elsewhere in {state}",
+  noMatch: "No place matches \u201c{q}\u201d. Try a nearby larger city or your state name.",
+  example: "Example: Denver. Pick your own place above.",
+  allWhat: "Prices vs. the US average (100), {year}",
+  allWhatState: "{state} state average vs. the US (100), {year}. Includes its cities.",
+  housingWhat: "Housing costs vs. the US average",
+  above: "{n}% above",
+  below: "{n}% below",
+  even: "Even",
+  bandWhat: "A rough band we set from the price index.",
+  bands: ["Lower cost", "Near average", "Higher cost", "Very high cost"],
+  mapHeading: "See the zones on a map",
+  mapCompany: "Company",
+  mapLoading: "Loading the map\u2026",
+  mapFailed: "The map didn't load. The table below still has every zone.",
+  mapHint: "Tap or hover over a county to see its zone. Tap to look that place up.",
+  mapCounty: "{county}, {st}: {place}. {zone} at {company}.",
+  mapNotListed: "not listed",
+  youAreHere: "Outlined: {place}",
+  tableHeading: "Your zone at each company",
+  thCo: "Company",
+  thZone: "Your zone",
+  thWhy: "Why",
+  thSrc: "Source",
+  rank: "{pos} of {count} zones, highest pay first",
+  notListed: "Not listed",
+  ordinal: ["Highest", "2nd", "3rd", "4th", "5th", "6th"],
+  checked: "Checked {date}",
+  published: "Published: {when}",
+  nextHeading: "Before you trust a zone",
+  next: [
+    "Ask the recruiter which zone your exact address or county is in. Most companies here tell you to, and some draw zones by county.",
+    "If you live near the edge of a metro, ask which side of the line you're on. Block, for one, says places about 50 miles out may be in a different zone.",
+    "Zones change. Each row shows when we last checked the company's page."
+  ],
+  aboutHeading: "Where this comes from",
+  about: [
+    "Company zones come from each company's own careers page, linked in its row. Where a company lists cities, we matched each city to its metro area.",
+    "Price figures are the Bureau of Economic Analysis Regional Price Parities for {year}, all items and housing. 100 is the US average.",
+    "Cost bands are a rough grouping we made from that index: under 97 is lower cost, 97 to 103 near average, 103 to 110 higher, and 110 or more very high.",
+    "{bay}",
+    "A metro that crosses state lines counts as being in the first state in its name.",
+    "The map colors each county by its metro area, using the Census Bureau's July 2023 metro definitions. County shapes are from the Census Bureau via us-atlas."
+  ]
+};
+const t = (k, vars = {}) => STR[k].replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? "");
+
+const metroByCode = Object.fromEntries(DATA.metros.map(m => [m.code, m]));
+const stateByAbbr = Object.fromEntries(DATA.states.map(s => [s.st, s]));
+const PLACES = [
+  ...DATA.metros.map(m => ({ id: "m" + m.code, label: `${m.name}, ${m.states.join("-")}`, kind: "metro", metro: m })),
+  ...DATA.states.map(s => ({ id: "st-" + s.st, label: t("elsewhere", { state: s.name }), kind: "state", state: s }))
+];
+const placeById = Object.fromEntries(PLACES.map(p => [p.id, p]));
+
+function pct(v) {
+  const d = Math.round((v - 100) * 10) / 10;
+  if (d === 0) return t("even");
+  return d > 0 ? t("above", { n: d.toFixed(1) }) : t("below", { n: Math.abs(d).toFixed(1) });
+}
+function band(v) { return STR.bands[v < 97 ? 0 : v < 103 ? 1 : v < 110 ? 2 : 3]; }
+
+// The site ships answers, not rules: the private build works out each
+// place's zone at each company and the page only looks it up.
+// answers[placeId][companyIndex] = [zoneIndex or -1, whyText, labelText or -1]
+function zoneFor(co, place) {
+  const a = DATA.answers[place.id][DATA.companies.list.indexOf(co)];
+  return { zone: a[0] < 0 ? null : co.zones[a[0]], why: DATA.text[a[1]], label: a[2] < 0 ? undefined : DATA.text[a[2]] };
+}
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function render(place, isExample) {
+  document.getElementById("example-flag").hidden = !isExample;
+  document.getElementById("place-kind").textContent = place.kind === "metro" ? t("kindMetro") : t("kindState");
+  document.getElementById("place-name").textContent = place.label;
+  const all = place.kind === "metro" ? place.metro.all : place.state.all;
+  document.getElementById("fact-all").textContent = pct(all);
+  document.getElementById("fact-all-what").textContent = place.kind === "metro"
+    ? t("allWhat", { year: DATA.year }) : t("allWhatState", { state: place.state.name, year: DATA.year });
+  const hb = document.getElementById("fact-housing-box");
+  hb.hidden = place.kind !== "metro";
+  if (place.kind === "metro") document.getElementById("fact-housing").textContent = pct(place.metro.housing);
+  document.getElementById("fact-band").textContent = band(all);
+
+  const rows = document.getElementById("rows");
+  rows.replaceChildren();
+  for (const co of DATA.companies.list) {
+    const z = zoneFor(co, place);
+    const tr = document.createElement("tr");
+    tr.append(el("td", "co", co.name));
+
+    const tdZ = document.createElement("td");
+    if (z.zone) {
+      const pos = co.zones.indexOf(z.zone);
+      tdZ.append(el("div", "zone", z.label || z.zone));
+      const lad = el("div", "ladder"); lad.setAttribute("aria-hidden", "true");
+      co.zones.forEach((_, i) => lad.append(el("span", i === pos ? "on" : "")));
+      tdZ.append(lad, el("div", "rank", t("rank", { pos: STR.ordinal[pos], count: co.zones.length })));
+    } else {
+      tdZ.append(el("div", "zone unknown", t("notListed")));
+    }
+    tr.append(tdZ);
+
+    const tdW = el("td", "why");
+    tdW.append(el("div", "", z.why));
+    if (co.notes) tdW.append(el("div", "note", co.notes));
+    tr.append(tdW);
+
+    const tdS = el("td", "src");
+    const a = el("a", "", new URL(co.source).hostname.replace(/^www\./, ""));
+    a.href = co.source; a.target = "_blank"; a.rel = "noopener";
+    tdS.append(a, el("span", "date", t("published", { when: co.published })), el("span", "date", t("checked", { date: co.checked })));
+    tr.append(tdS);
+    rows.append(tr);
+  }
+}
+
+// Static text
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],
+  ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
+  ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["about-heading","aboutHeading"]]) {
+  document.getElementById(id).textContent = t(key);
+}
+document.getElementById("next-list").append(...STR.next.map(s => el("li", "", s)));
+document.getElementById("about-list").append(...STR.about.map(s =>
+  el("li", "", s.replace("{year}", DATA.year).replace("{bay}", DATA.companies.bayNote))));
+
+// Search box (combobox pattern: arrows move, Enter picks, Escape closes)
+const input = document.getElementById("place-input");
+const list = document.getElementById("place-options");
+let matches = [], active = -1;
+function norm(s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.]/g, ""); }
+function search(q) {
+  const n = norm(q.trim());
+  if (!n) return [];
+  const scored = [];
+  for (const p of PLACES) {
+    const L = norm(p.label);
+    const parts = L.split(/[-,\s]+/);
+    let s = -1;
+    if (L.startsWith(n)) s = 0;
+    else if (parts.some(w => w.startsWith(n))) s = 1;
+    else if (L.includes(n)) s = 2;
+    if (p.kind === "state" && s >= 0) s += 0.5;
+    if (s >= 0) scored.push([s, p]);
+  }
+  return scored.sort((a, b) => a[0] - b[0] || a[1].label.localeCompare(b[1].label)).slice(0, 12).map(x => x[1]);
+}
+function showOptions() {
+  list.replaceChildren();
+  if (!input.value.trim()) { list.hidden = true; input.setAttribute("aria-expanded", "false"); return; }
+  if (!matches.length) {
+    const li = el("li", "", t("noMatch", { q: input.value.trim() })); li.setAttribute("aria-disabled", "true");
+    list.append(li);
+  }
+  matches.forEach((p, i) => {
+    const li = el("li"); li.id = "opt-" + i; li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", i === active ? "true" : "false");
+    li.append(el("span", "", p.label), el("span", "kind", p.kind === "metro" ? t("optMetro") : t("optState")));
+    li.addEventListener("mousedown", e => { e.preventDefault(); choose(p); });
+    list.append(li);
+  });
+  list.hidden = false; input.setAttribute("aria-expanded", "true");
+  if (active >= 0) input.setAttribute("aria-activedescendant", "opt-" + active); else input.removeAttribute("aria-activedescendant");
+}
+function choose(p) {
+  input.value = p.label; matches = []; active = -1;
+  list.hidden = true; input.setAttribute("aria-expanded", "false");
+  try { history.replaceState(null, "", "#" + p.id); } catch (e) { /* some frames refuse */ }
+  render(p, false);
+}
+
+// ---- Map ----
+// Each county takes the zone of its metro; counties outside the listed metros
+// are looked up as "Elsewhere in {state}". Zone colours run dark (highest pay)
+// to light; with fewer than four zones the ramp spreads out evenly.
+const stateByFips = Object.fromEntries(DATA.states.map(s => [s.fips, s]));
+const SVGNS = "http://www.w3.org/2000/svg";
+const mapSel = document.getElementById("map-company");
+const mapCap = document.getElementById("map-caption");
+let counties = [], youPath = null, currentPlace = null;
+function placeForCounty(id) {
+  const code = DATA.countyMetro[id];
+  return code ? placeById["m" + code] : placeById["st-" + (stateByFips[id.slice(0, 2)] || {}).st];
+}
+function zoneColor(co, zone) {
+  if (!zone) return "var(--znone)";
+  const n = co.zones.length, i = co.zones.indexOf(zone);
+  return `var(--z${n === 1 ? 0 : Math.round(i * 3 / (n - 1))})`;
+}
+function paintMap() {
+  const co = DATA.companies.list[mapSel.selectedIndex];
+  for (const c of counties) c.el.setAttribute("fill", c.place ? zoneColor(co, zoneFor(co, c.place).zone) : "var(--znone)");
+  const leg = document.getElementById("legend");
+  leg.replaceChildren();
+  const items = co.zones.map(z => [z, zoneColor(co, z)]);
+  if (!co.default) items.push([t("notListed"), "var(--znone)"]);
+  for (const [name, col] of items) {
+    const li = el("li"); const sw = el("span", "swatch"); sw.style.background = col;
+    li.append(sw, el("span", "", name)); leg.append(li);
+  }
+  mapCap.textContent = t("mapHint");
+}
+function outlinePlace(place) {
+  currentPlace = place;
+  if (!youPath || !window.topojson || !MAPTOPO) return;
+  const geoms = MAPTOPO.objects.counties.geometries.filter(g => placeForCounty(g.id) === place);
+  youPath.setAttribute("d", geoms.length ? pathOf(topojson.merge(MAPTOPO, geoms)) : "");
+}
+function pathOf(geom) {
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+  return polys.map(p => p.map(r => "M" + r.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join("L") + "Z").join("")).join("");
+}
+function meshPath(lines) {
+  return lines.coordinates.map(l => "M" + l.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join("L")).join("");
+}
+let MAPTOPO = null;
+async function initMap() {
+  const box = document.getElementById("mapbox");
+  document.getElementById("map-loading").textContent = t("mapLoading");
+  for (const co of DATA.companies.list) mapSel.append(new Option(co.name, co.name));
+  mapSel.value = "Block";
+  try {
+    if (!window.topojson) throw new Error("topojson-client missing");
+    MAPTOPO = await (await fetch("counties.json")).json();
+  } catch (e) {
+    document.getElementById("map-loading").textContent = t("mapFailed");
+    return;
+  }
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("viewBox", "0 0 975 610");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", t("mapHeading"));
+  for (const f of topojson.feature(MAPTOPO, MAPTOPO.objects.counties).features) {
+    const p = document.createElementNS(SVGNS, "path");
+    p.setAttribute("d", pathOf(f.geometry)); p.setAttribute("class", "county");
+    const st = stateByFips[f.id.slice(0, 2)];
+    const c = { el: p, id: f.id, name: f.properties.name, st: st ? st.st : "", place: placeForCounty(f.id) };
+    const show = () => {
+      const co = DATA.companies.list[mapSel.selectedIndex];
+      const z = c.place ? zoneFor(co, c.place) : { zone: null };
+      mapCap.textContent = t("mapCounty", { county: c.name, st: c.st, place: c.place ? c.place.label : c.st,
+        zone: z.zone ? (z.label || z.zone) : t("mapNotListed"), company: co.name });
+    };
+    p.addEventListener("mouseenter", show);
+    p.addEventListener("click", () => { show(); if (c.place) { input.value = c.place.label; render(c.place, false); } });
+    counties.push(c); svg.append(p);
+  }
+  const states = document.createElementNS(SVGNS, "path");
+  states.setAttribute("class", "states");
+  states.setAttribute("d", meshPath(topojson.mesh(MAPTOPO, MAPTOPO.objects.states, (a, b) => a !== b)));
+  youPath = document.createElementNS(SVGNS, "path"); youPath.setAttribute("class", "you");
+  svg.append(states, youPath);
+  box.replaceChildren(svg);
+  paintMap();
+  if (currentPlace) outlinePlace(currentPlace);
+}
+mapSel.addEventListener("change", paintMap);
+const renderTable = render;
+render = (place, isExample) => { renderTable(place, isExample); outlinePlace(place); };
+initMap();
+input.addEventListener("input", () => { matches = search(input.value); active = matches.length ? 0 : -1; showOptions(); });
+input.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown" && matches.length) { active = (active + 1) % matches.length; showOptions(); e.preventDefault(); }
+  else if (e.key === "ArrowUp" && matches.length) { active = (active - 1 + matches.length) % matches.length; showOptions(); e.preventDefault(); }
+  else if (e.key === "Enter" && active >= 0) { choose(matches[active]); e.preventDefault(); }
+  else if (e.key === "Escape") { list.hidden = true; input.setAttribute("aria-expanded", "false"); }
+});
+input.addEventListener("blur", () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); });
+
+function fromHash() {
+  const p = placeById[location.hash.slice(1)];
+  if (p) { input.value = p.label; render(p, false); return true; }
+  return false;
+}
+window.addEventListener("hashchange", fromHash);
+if (!fromHash()) render(placeById["m19740"], true);
+}

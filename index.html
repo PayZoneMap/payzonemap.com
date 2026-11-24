@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<title>Which pay zone am I in?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+<main>
+  <header class="intro">
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <div class="search" role="search">
+    <label for="place-input" id="place-label"></label>
+    <input id="place-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
+           aria-expanded="false" aria-controls="place-options">
+    <ul class="options" id="place-options" role="listbox" hidden></ul>
+    <p class="hint" id="place-hint"></p>
+  </div>
+
+  <section class="place" aria-labelledby="place-name">
+    <span class="example" id="example-flag" hidden></span>
+    <div>
+      <div class="where" id="place-kind"></div>
+      <h2 id="place-name"></h2>
+    </div>
+    <div class="facts">
+      <div class="fact"><span class="big num" id="fact-all"></span><span class="what" id="fact-all-what"></span></div>
+      <div class="fact" id="fact-housing-box"><span class="big num" id="fact-housing"></span><span class="what" id="fact-housing-what"></span></div>
+      <div class="fact"><span class="big" id="fact-band"></span><span class="what" id="fact-band-what"></span></div>
+    </div>
+  </section>
+
+  <section class="mapsec" aria-labelledby="map-heading">
+    <h2 id="map-heading"></h2>
+    <div class="mapbar">
+      <div>
+        <label for="map-company" id="map-company-label"></label>
+        <select id="map-company"></select>
+      </div>
+      <ul class="legend" id="legend"></ul>
+    </div>
+    <div class="mapbox" id="mapbox"><p class="maploading" id="map-loading"></p></div>
+    <p class="mapcap" id="map-caption" aria-live="polite"></p>
+  </section>
+
+  <section aria-labelledby="table-heading" style="display:grid;gap:0.8rem">
+    <h2 id="table-heading"></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th id="th-co"></th><th id="th-zone"></th><th id="th-why"></th><th id="th-src"></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="next" aria-labelledby="next-heading">
+    <h2 id="next-heading"></h2>
+    <ul id="next-list"></ul>
+  </section>
+
+  <footer class="about" aria-labelledby="about-heading">
+    <h2 id="about-heading"></h2>
+    <ul id="about-list"></ul>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
