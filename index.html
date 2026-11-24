@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css?v=3d3f7054aa">
+<link rel="stylesheet" href="styles.css?v=59a99d8b37">
 
 </head>
 <body>
@@ -45,24 +45,20 @@
       <input id="place-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
              aria-expanded="false" aria-controls="place-options">
       <ul class="options" id="place-options" role="listbox" hidden></ul>
-      <p class="hint" id="place-hint"></p>
     </div>
     <div class="search">
       <label for="company-input" id="company-label"></label>
       <input id="company-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
              aria-expanded="false" aria-controls="company-options">
       <ul class="options" id="company-options" role="listbox" hidden></ul>
-      <p class="hint" id="company-hint"></p>
     </div>
     <div class="search">
       <label for="role-input" id="role-label"></label>
-      <input id="role-input" type="search" autocomplete="off" aria-describedby="role-hint">
-      <p class="hint" id="role-hint"></p>
+      <input id="role-input" type="search" autocomplete="off">
     </div>
     <div class="search">
       <label for="amt-input" id="amt-label"></label>
-      <input id="amt-input" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amt-hint">
-      <p class="hint" id="amt-hint"></p>
+      <input id="amt-input" type="text" inputmode="decimal" autocomplete="off">
     </div>
   </div>
   <p class="searchpay" id="search-pay" aria-live="polite" hidden><span id="search-pay-text"></span> <button type="button" class="linkbtn" id="search-pay-link"></button></p>
@@ -120,9 +116,8 @@
       <div><label for="pay-level" id="pay-level-label"></label><select id="pay-level"></select></div>
       <div><label for="pay-covers" id="pay-covers-label"></label><select id="pay-covers"></select></div>
       <div class="grow"><label for="pay-q" id="pay-q-label"></label><input id="pay-q" type="search" autocomplete="off"></div>
-      <div><label for="pay-amt" id="pay-amt-label"></label><input id="pay-amt" type="text" inputmode="decimal" autocomplete="off" aria-describedby="pay-amt-hint"></div>
+      <div><label for="pay-amt" id="pay-amt-label"></label><input id="pay-amt" type="text" inputmode="decimal" autocomplete="off"></div>
     </div>
-    <p class="hint" id="pay-amt-hint"></p>
     <p class="hint" id="pay-amt-note" aria-live="polite"></p>
     <p class="mapcap" id="pay-count" aria-live="polite"></p>
     <p class="hint" id="pay-coverage"></p>
@@ -161,7 +156,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=bc74229643"></script>
+<script src="app.js?v=17fc2e2a2f"></script>
 <!-- 24 Nov: visit counts, to see which LinkedIn posts send people here
      (utm_campaign, see MyMetrics README "Tagged links"). count.js is GoatCounter's
      own script, kept here so the page runs a pinned copy; it counts once on load,

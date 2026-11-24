@@ -12,7 +12,7 @@ const STR = {
   lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live, a company, or both, to see the zone you'd land in at companies that publish their lists. Add a role or a pay amount to see what companies post for it, and in which zones.",
   placeLabel: "Where do you live?",
   companyLabel: "Company",
-  companyHint: "Type a company name, or leave it empty to see all of them.",
+  companyPh: "Any company",
   companyNoMatch: "No company matches \u201c{q}\u201d yet. Email hello@payzonemap.com to suggest one that publishes its zones.",
   companyKind: "Zones at",
   companyRest: "everywhere else not listed above",
@@ -22,7 +22,7 @@ const STR = {
   mapShowingAll: "Showing: all companies (typical zone)",
   mapShowing: "Showing: {company}",
   zoneLine: "{zone}",
-  placeHint: "Type a city. If yours isn't listed, pick the nearest metro or \u201cElsewhere in\u201d your state.",
+  placePh: "City or state",
   kindMetro: "Metro area",
   kindState: "Outside the listed metros",
   kindInMetro: "{county}, part of the {metro} metro",
@@ -102,9 +102,9 @@ const STR = {
   payHourly: "{range} an hour",
   payAmt: "Pay amount",
   roleLabel: "Role or job title",
-  roleHint: "Words from the job title, like product manager or data engineer.",
+  rolePh: "Product manager",
   searchPayLink: "See the postings",
-  payAmtHint: "Enter a yearly figure like 150k, or an hourly rate like 25, to see which postings have a range that includes it.",
+  payAmtPh: "150k, or 25 an hour",
   payAmtBad: "Enter a number, like 150k or 25.",
   payAmtCovers: "Matching {covers} ranges only. Change \u201cWhat the range covers\u201d to match another kind of pay.",
   payCountAmt: "{p} at {c} have a range that includes {amt} ({covers}): {n}.",
@@ -273,7 +273,13 @@ function render(place, isExample) {
 }
 
 // Static text
-for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["role-label","roleLabel"],["role-hint","roleHint"],["amt-label","payAmt"],["amt-hint","payAmtHint"],["search-pay-link","searchPayLink"],["pay-where-label","payWhere"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pay-amt-label","payAmt"],["pay-amt-hint","payAmtHint"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
+// Placeholders (24 Nov): the hint lines under each box read as too wordy. Hover
+// was the first idea, but phones have no hover, so each box shows a short
+// example instead; the label stays above it, and the no-match and bad-number
+// messages still say what to do when it matters.
+for (const [id, key] of [["place-input","placePh"],["company-input","companyPh"],["role-input","rolePh"],["amt-input","payAmtPh"],["pay-amt","payAmtPh"]])
+  document.getElementById(id).placeholder = t(key);
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["company-label","companyLabel"],["company-clear","companyClear"],["role-label","roleLabel"],["amt-label","payAmt"],["search-pay-link","searchPayLink"],["pay-where-label","payWhere"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pay-amt-label","payAmt"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["story-link","storyLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);

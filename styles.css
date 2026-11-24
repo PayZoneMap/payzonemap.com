@@ -147,3 +147,6 @@ td.co { font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .ladder span { transition: background 0.2s; } }
 /* The top search's line about pay postings, under all four fields (24 Nov). */
 .searchpay { margin: 0.8rem 0 0; font-weight: 600; }
+/* Placeholders carry the examples that used to be hint lines (24 Nov). Muted
+   ink rather than the browser's faint default, so they stay readable. */
+input::placeholder { color: var(--muted); opacity: 1; }
