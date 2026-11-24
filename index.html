@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css?v=173ad420ff">
+<link rel="stylesheet" href="styles.css?v=2ac93efcbb">
 
 </head>
 <body>
@@ -39,13 +39,32 @@
     <p class="lede" id="lede"></p>
   </header>
 
-  <div class="search" role="search">
-    <label for="place-input" id="place-label"></label>
-    <input id="place-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
-           aria-expanded="false" aria-controls="place-options">
-    <ul class="options" id="place-options" role="listbox" hidden></ul>
-    <p class="hint" id="place-hint"></p>
+  <div class="searches" role="search">
+    <div class="search">
+      <label for="place-input" id="place-label"></label>
+      <input id="place-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
+             aria-expanded="false" aria-controls="place-options">
+      <ul class="options" id="place-options" role="listbox" hidden></ul>
+      <p class="hint" id="place-hint"></p>
+    </div>
+    <div class="search">
+      <label for="company-input" id="company-label"></label>
+      <input id="company-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
+             aria-expanded="false" aria-controls="company-options">
+      <ul class="options" id="company-options" role="listbox" hidden></ul>
+      <p class="hint" id="company-hint"></p>
+    </div>
   </div>
+
+  <section class="place company-panel" id="company-panel" aria-labelledby="company-name" hidden>
+    <div>
+      <div class="where" id="company-kind"></div>
+      <h2 id="company-name"></h2>
+    </div>
+    <ul class="zonelist" id="company-zones"></ul>
+    <p class="hint" id="company-meta"></p>
+    <p><button type="button" class="linkbtn" id="company-clear"></button></p>
+  </section>
 
   <section class="place" aria-labelledby="place-name">
     <span class="example" id="example-flag" hidden></span>
@@ -64,10 +83,7 @@
   <section class="mapsec" aria-labelledby="map-heading">
     <h2 id="map-heading"></h2>
     <div class="mapbar">
-      <div>
-        <label for="map-company" id="map-company-label"></label>
-        <select id="map-company"></select>
-      </div>
+      <p class="mapshowing" id="map-showing"></p>
       <ul class="legend" id="legend"></ul>
     </div>
     <div class="mapbox" id="mapbox"><p class="maploading" id="map-loading"></p></div>
@@ -103,6 +119,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=c89b7f33d4"></script>
+<script src="app.js?v=55b42affda"></script>
 </body>
 </html>

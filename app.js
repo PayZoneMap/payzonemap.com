@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=4b256d3c3e").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=7bc90dc516").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -9,8 +9,19 @@ function main(DATA) {
 // Every visible string lives here, one whole sentence per key (house rule for new products).
 const STR = {
   title: "Which pay zone am I in?",
-  lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live to see the zone you'd land in at companies that publish their lists.",
+  lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live, a company, or both, to see the zone you'd land in at companies that publish their lists.",
   placeLabel: "Where do you live?",
+  companyLabel: "Company",
+  companyHint: "Type a company name, or leave it empty to see all of them.",
+  companyNoMatch: "No company matches \u201c{q}\u201d yet. Email hello@payzonemap.com to suggest one that publishes its zones.",
+  companyKind: "Zones at",
+  companyRest: "everywhere else not listed above",
+  companyUnlisted: "Not listed: {text}",
+  companyOrder: "A place listed in a higher zone takes that zone.",
+  companyClear: "Show all companies",
+  mapShowingAll: "Showing: all companies (typical zone)",
+  mapShowing: "Showing: {company}",
+  zoneLine: "{zone}",
   placeHint: "Type a city. If yours isn't listed, pick the nearest metro or \u201cElsewhere in\u201d your state.",
   kindMetro: "Metro area",
   kindState: "Outside the listed metros",
@@ -143,7 +154,7 @@ function render(place, isExample) {
 
   const rows = document.getElementById("rows");
   rows.replaceChildren();
-  for (const co of DATA.companies.list) {
+  for (const co of (selectedCompany ? [selectedCompany] : DATA.companies.list)) {
     const z = zoneFor(co, place);
     const tr = document.createElement("tr");
     tr.append(el("td", "co", co.name));
@@ -207,7 +218,7 @@ function render(place, isExample) {
 }
 
 // Static text
-for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
@@ -301,8 +312,8 @@ function showOptions() {
 function choose(p) {
   input.value = p.label; matches = []; active = -1;
   list.hidden = true; input.setAttribute("aria-expanded", "false");
-  try { history.replaceState(null, "", "#" + (p.hashId || p.id)); } catch (e) { /* some frames refuse */ }
   render(p, false);
+  writeHash();
 }
 
 // ---- Map ----
@@ -311,7 +322,7 @@ function choose(p) {
 // to light; with fewer than four zones the ramp spreads out evenly.
 const stateByFips = Object.fromEntries(DATA.states.map(s => [s.fips, s]));
 const SVGNS = "http://www.w3.org/2000/svg";
-const mapSel = document.getElementById("map-company");
+let selectedCompany = null;
 const mapCap = document.getElementById("map-caption");
 let counties = [], youPath = null, currentPlace = null;
 function placeForCounty(id) {
@@ -329,13 +340,14 @@ function likelyBand(place) {
   return k * 2 > cs[3] ? { band, k, n: cs[3] } : null;
 }
 const TYPICAL_COLORS = ["var(--z0)", "var(--z1)", "var(--z3)"];
-const isAll = () => mapSel.value === "__all";
+const isAll = () => !selectedCompany;
 function zoneColor(co, zone) {
   if (!zone) return "var(--znone)";
   const n = co.zones.length, i = co.zones.indexOf(zone);
   return `var(--z${n === 1 ? 0 : Math.round(i * 3 / (n - 1))})`;
 }
 function paintMap() {
+  document.getElementById("map-showing").textContent = selectedCompany ? t("mapShowing", { company: selectedCompany.name }) : t("mapShowingAll");
   const leg = document.getElementById("legend");
   leg.replaceChildren();
   let items;
@@ -346,7 +358,7 @@ function paintMap() {
     }
     items = STR.typical.map((name, i) => [name, TYPICAL_COLORS[i]]);
   } else {
-    const co = DATA.companies.list.find(x => x.name === mapSel.value);
+    const co = selectedCompany;
     for (const c of counties) c.el.setAttribute("fill", c.place ? zoneColor(co, zoneFor(co, c.place).zone) : "var(--znone)");
     items = co.zones.map(z => [z, zoneColor(co, z)]);
     if (!co.default) items.push([t("notListed"), "var(--znone)"]);
@@ -375,9 +387,7 @@ let MAPTOPO = null;
 async function initMap() {
   const box = document.getElementById("mapbox");
   document.getElementById("map-loading").textContent = t("mapLoading");
-  mapSel.append(new Option(t("mapAll"), "__all"));
-  for (const co of DATA.companies.list) mapSel.append(new Option(co.name, co.name));
-  mapSel.value = "__all";
+
   try {
     if (!window.topojson) throw new Error("topojson-client missing");
     MAPTOPO = await (await fetch("counties.json?v=d907231047")).json();
@@ -403,7 +413,7 @@ async function initMap() {
         }
         return;
       }
-      const co = DATA.companies.list.find(x => x.name === mapSel.value);
+      const co = selectedCompany;
       const z = c.place ? zoneFor(co, c.place) : { zone: null };
       mapCap.textContent = t("mapCounty", { county: c.name, st: c.st, place: c.place ? c.place.label : c.st,
         zone: z.zone ? (z.label || z.zone) : t("mapNotListed"), company: co.name });
@@ -412,7 +422,7 @@ async function initMap() {
     p.addEventListener("click", () => {
       show();
       const cp = countyPlace(c.id, countyById[c.id] || c.name);
-      if (cp) { input.value = cp.label; try { history.replaceState(null, "", "#" + cp.hashId); } catch (e) {} render(cp, false); }
+      if (cp) { input.value = cp.label; render(cp, false); writeHash(); }
     });
     counties.push(c); svg.append(p);
   }
@@ -425,9 +435,85 @@ async function initMap() {
   paintMap();
   if (currentPlace) outlinePlace(currentPlace);
 }
-mapSel.addEventListener("change", paintMap);
+
 const renderTable = render;
-render = (place, isExample) => { renderTable(place, isExample); outlinePlace(place); };
+let shownPlace = null, shownExample = true;
+render = (place, isExample) => { shownPlace = place; shownExample = isExample; renderTable(place, isExample); outlinePlace(place); };
+
+// ---- Company search (24 Nov, Randi: too many companies for a dropdown) ----
+// A company on its own shows that company's published zone list and its map;
+// with a place it narrows the table to that one company's row.
+const cInput = document.getElementById("company-input");
+const cList = document.getElementById("company-options");
+let cMatches = [], cActive = -1;
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function companySearch(q) {
+  const n = norm(q.trim());
+  if (!n) return [];
+  return DATA.companies.list
+    .map(co => { const k = norm(co.name); return [k.startsWith(n) ? 0 : k.split(/\s+/).some(w => w.startsWith(n)) ? 1 : k.includes(n) ? 2 : -1, co]; })
+    .filter(x => x[0] >= 0).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name)).map(x => x[1]);
+}
+function showCompanyOptions() {
+  cList.replaceChildren();
+  if (!cInput.value.trim()) { cList.hidden = true; cInput.setAttribute("aria-expanded", "false"); return; }
+  if (!cMatches.length) {
+    const li = el("li", "", t("companyNoMatch", { q: cInput.value.trim() })); li.setAttribute("aria-disabled", "true"); cList.append(li);
+  }
+  cMatches.forEach((co, i) => {
+    const li = el("li"); li.id = "copt-" + i; li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", i === cActive ? "true" : "false");
+    li.append(el("span", "", co.name), el("span", "kind", co.zones.length + " zones"));
+    li.addEventListener("mousedown", e => { e.preventDefault(); chooseCompany(co); });
+    cList.append(li);
+  });
+  cList.hidden = false; cInput.setAttribute("aria-expanded", "true");
+  if (cActive >= 0) cInput.setAttribute("aria-activedescendant", "copt-" + cActive); else cInput.removeAttribute("aria-activedescendant");
+}
+function renderCompanyPanel() {
+  const panel = document.getElementById("company-panel");
+  panel.hidden = !selectedCompany;
+  if (!selectedCompany) return;
+  const co = selectedCompany, zl = DATA.zoneLists[DATA.companies.list.indexOf(co)];
+  document.getElementById("company-kind").textContent = t("companyKind");
+  document.getElementById("company-name").textContent = co.name;
+  const ul = document.getElementById("company-zones"); ul.replaceChildren();
+  co.zones.forEach((z, i) => {
+    const li = el("li"); const parts = [...zl.zones[i].metros, ...zl.zones[i].states];
+    if (zl.zones[i].rest) parts.push(t("companyRest"));
+    const sw = el("span", "swatch"); sw.style.background = zoneColor(co, z); sw.style.display = "inline-block"; sw.style.marginRight = "0.4rem"; sw.style.verticalAlign = "-0.15rem";
+    const nm = el("span", "zname"); nm.append(sw, z);
+    li.append(nm, el("span", "zplaces", parts.join(" \u00b7 ")));
+    ul.append(li);
+  });
+  if (zl.unlisted) { const li = el("li"); li.append(el("span", "zplaces", t("companyUnlisted", { text: zl.unlisted }))); ul.append(li); }
+  const meta = document.getElementById("company-meta"); meta.replaceChildren();
+  const a = el("a", "", new URL(co.source).hostname.replace(/^www\./, "")); a.href = co.source; a.target = "_blank"; a.rel = "noopener";
+  meta.append(t("companyOrder") + " " + t("basisLabel") + STR.basis[co.basis] + ". ", a, " \u00b7 " + t("checked", { date: co.checked }));
+}
+function writeHash() {
+  const parts = [];
+  if (shownPlace && !shownExample) parts.push(shownPlace.hashId || shownPlace.id);
+  if (selectedCompany) parts.push("co=" + slug(selectedCompany.name));
+  try { history.replaceState(null, "", parts.length ? "#" + parts.join("&") : location.pathname); } catch (e) {}
+}
+function chooseCompany(co) {
+  selectedCompany = co; cInput.value = co ? co.name : ""; cMatches = []; cActive = -1;
+  cList.hidden = true; cInput.setAttribute("aria-expanded", "false");
+  renderCompanyPanel(); paintMap(); if (shownPlace) render(shownPlace, shownExample); writeHash();
+}
+cInput.addEventListener("input", () => {
+  if (!cInput.value.trim() && selectedCompany) { chooseCompany(null); return; }
+  cMatches = companySearch(cInput.value); cActive = cMatches.length ? 0 : -1; showCompanyOptions();
+});
+cInput.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown" && cMatches.length) { cActive = (cActive + 1) % cMatches.length; showCompanyOptions(); e.preventDefault(); }
+  else if (e.key === "ArrowUp" && cMatches.length) { cActive = (cActive - 1 + cMatches.length) % cMatches.length; showCompanyOptions(); e.preventDefault(); }
+  else if (e.key === "Enter" && cActive >= 0) { chooseCompany(cMatches[cActive]); e.preventDefault(); }
+  else if (e.key === "Escape") { cList.hidden = true; cInput.setAttribute("aria-expanded", "false"); }
+});
+cInput.addEventListener("blur", () => { cList.hidden = true; cInput.setAttribute("aria-expanded", "false"); });
+document.getElementById("company-clear").addEventListener("click", () => chooseCompany(null));
 initMap();
 input.addEventListener("input", () => { matches = search(input.value); active = matches.length ? 0 : -1; showOptions(); });
 input.addEventListener("keydown", e => {
@@ -439,11 +525,16 @@ input.addEventListener("keydown", e => {
 input.addEventListener("blur", () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); });
 
 function fromHash() {
-  const h = location.hash.slice(1);
+  // "#m19740", "#m19740&co=asana" or "#co=asana" (older links are just the place id).
+  const parts = location.hash.slice(1).split("&");
+  const coPart = parts.find(x => x.startsWith("co="));
+  const co = coPart ? DATA.companies.list.find(c => slug(c.name) === coPart.slice(3)) : null;
+  const h = parts.find(x => x && !x.startsWith("co=")) || "";
+  if (co !== selectedCompany) { selectedCompany = co || null; cInput.value = co ? co.name : ""; renderCompanyPanel(); if (counties.length) paintMap(); }
   const p = placeById[h] || (h.startsWith("c") && countyById[h.slice(1)] ? countyPlace(h.slice(1), countyById[h.slice(1)]) : null);
   if (p) { input.value = p.label; render(p, false); return true; }
-  return false;
+  return !!co && !h;
 }
 window.addEventListener("hashchange", fromHash);
-if (!fromHash()) render(placeById["m19740"], true);
+if (!fromHash() || !shownPlace) render(placeById["m19740"], true);
 }
