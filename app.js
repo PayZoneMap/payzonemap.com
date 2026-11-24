@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=4ba2e64867").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=4b256d3c3e").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -53,7 +53,7 @@ const STR = {
   reportedDiffers: " This differs from the published list.",
   months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   basisLabel: "Zone follows: ",
-  basis: { home: "where you live", work: "where you work", yours: "your location (home or office not said)", none: "not stated" },
+  basis: { home: "where you live", work: "where you work", yours: "your location (home or office not said)", none: "not stated", officehome: "the office, or where you live if remote" },
   wrongSubject: "Zone report: {company}, {place}",
   wrongBody: "PayZoneMap shows: {zone} at {company} for {place}.\n\nThe zone I was given:\n\nWho told me (recruiter, offer letter, job posting link):\n\nWhen:\n\nRemote, hybrid or in the office:\n\nPage: {url}\n\n(No need to include your name or pay.)",
   bandWord: { top: "Top", middle: "Middle", bottom: "Bottom" },
