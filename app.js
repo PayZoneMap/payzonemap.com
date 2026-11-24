@@ -56,6 +56,7 @@ const STR = {
     "Zones change. Each row shows when we last checked the company's page."
   ],
   aboutHeading: "Where this comes from",
+  termsLink: "Terms, privacy and credits",
   contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
   contactEmail: "hello@payzonemap.com",
   about: [
@@ -145,7 +146,7 @@ function render(place, isExample) {
 // Static text
 for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
-  ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["about-heading","aboutHeading"]]) {
+  ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
 }
 {
