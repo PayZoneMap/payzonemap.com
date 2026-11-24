@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=7047cab621").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=497594ff59").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -46,6 +46,8 @@ const STR = {
   thSrc: "Source",
   rank: "{band} of their scale: {pos} of {count} zones",
   wrong: "Was this wrong?",
+  basisLabel: "Zone follows: ",
+  basis: { home: "where you live", work: "where you work", yours: "your location (home or office not said)", none: "not stated" },
   wrongSubject: "Zone report: {company}, {place}",
   wrongBody: "PayZoneMap shows: {zone} at {company} for {place}.\n\nThe zone I was given:\n\nWho told me (recruiter, offer letter, job posting link):\n\nWhen:\n\nRemote, hybrid or in the office:\n\nPage: {url}\n\n(No need to include your name or pay.)",
   bandWord: { top: "Top", middle: "Middle", bottom: "Bottom" },
@@ -64,7 +66,8 @@ const STR = {
   next: [
     "Ask the recruiter which zone your exact address or county is in. Most companies here tell you to, and some draw zones by county.",
     "If you live near the edge of a metro, ask which side of the line you're on. Block, for one, says places about 50 miles out may be in a different zone.",
-    "Zones change. Each row shows when we last checked the company's page."
+    "Zones change. Each row shows when we last checked the company's page.",
+    "Companies differ on whether your zone follows where you live or where you work. Each row shows what that company says. If you'd live in one zone and commute to an office in another, ask which one counts."
   ],
   aboutHeading: "Where this comes from",
   termsLink: "Terms, privacy and credits",
@@ -158,6 +161,12 @@ function render(place, isExample) {
     tdZ.append(wrong);
     const tdW = el("td", "why");
     tdW.append(el("div", "", z.why));
+    // Randi, 23 Nov: it matters whether the zone follows where you live or
+    // the office you'd commute to. Only the company's own wording is shown.
+    const bs = el("div", "basis");
+    bs.append(el("strong", "", t("basisLabel") + STR.basis[co.basis]));
+    if (co.basis_quote) bs.append(" \u201c" + co.basis_quote.replace(/\.$/, "") + "\u201d");
+    tdW.append(bs);
     if (co.notes) tdW.append(el("div", "note", co.notes));
     tr.append(tdW);
 

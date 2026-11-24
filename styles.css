@@ -88,6 +88,8 @@ td.co { font-weight: 600; }
 .ladder span.on { background: var(--accent); }
 .rank { font-size: 0.85rem; color: var(--muted); }
 .why { font-size: 0.92rem; }
+.basis { font-size: 0.85rem; margin-top: 0.3rem; }
+.basis strong { font-weight: 600; }
 .wrong { display: inline-block; margin-top: 0.4rem; font-size: 0.85rem; }
 .note { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
 .src { font-size: 0.85rem; }
