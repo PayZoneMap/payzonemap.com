@@ -94,6 +94,29 @@ const STR = {
     "The same idea applies inside the US. Some companies only hire remote staff in states where they're registered to employ people, and some postings list states they can't hire in. If you're remote, check that your state is on the list before you look at zones."
   ],
   worldLink: "See the Office of Foreign Assets Control's sanctions programs",
+  payHeading: "Posted pay ranges for {place}",
+  payHeadingCo: "Posted pay ranges at {company} for {place}",
+  payIntro: "Each range is the company's own, from a current job posting, for the zone this place falls in. Read {date}. The level is our match from the job title, on an IC1 to IC7 and M1 to M7 scale; companies use their own ladders.",
+  payRole: "Role type",
+  payLevel: "Level",
+  payCovers: "What the range covers",
+  payQ: "Job title contains",
+  payAny: "Any",
+  payNoLevel: "Level not stated",
+  payCount: "{n} ranges from {p} postings at {c} companies.",
+  payNone: "No current postings match. Try another role type or level, or clear the title search.",
+  payMore: "Show more",
+  pthJob: "Job",
+  pthLevel: "Level",
+  pthRange: "Range for your zone",
+  pthCovers: "What it covers",
+  payAnyZone: "same in every location",
+  payFromTitle: "matched from title",
+  payFromRange: "from the range label",
+  payAlso: "Also offered: {what}",
+  payAlsoWords: { equity: "equity", bonus: "bonus" },
+  payPosted: "Posted {date}",
+  levelNames: { IC1: "IC1 entry", IC2: "IC2 mid", IC3: "IC3 senior", IC4: "IC4 staff", IC5: "IC5 senior staff", IC6: "IC6 principal", IC7: "IC7 distinguished", M1: "M1 manager", M2: "M2 senior manager", M3: "M3 director", M4: "M4 senior director", M5: "M5 VP", M6: "M6 SVP", M7: "M7 C-level" },
   aboutHeading: "Where this comes from",
   termsLink: "Terms, privacy and credits",
   contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
@@ -218,7 +241,7 @@ function render(place, isExample) {
 }
 
 // Static text
-for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
@@ -438,7 +461,69 @@ async function initMap() {
 
 const renderTable = render;
 let shownPlace = null, shownExample = true;
-render = (place, isExample) => { shownPlace = place; shownExample = isExample; renderTable(place, isExample); outlinePlace(place); };
+render = (place, isExample) => { shownPlace = place; shownExample = isExample; renderTable(place, isExample); outlinePlace(place); renderPay(); };
+// ---- Pay ranges by role and level (24 Nov) ----
+// Built from current postings at companies whose range labels we can match
+// to their zones. The company's own words come first; our IC/M level sits
+// beside it, marked as matched. Ranges that cover different things (base,
+// bonus included, on-target earnings) are labelled and never combined.
+let PAY = null, payShown = 50;
+const payEls = { role: document.getElementById("pay-role"), level: document.getElementById("pay-level"),
+  covers: document.getElementById("pay-covers"), q: document.getElementById("pay-q") };
+fetch("pay.json?v=3866b3c8f3").then(r => r.ok ? r.json() : null).then(p => {
+  if (!p) return;
+  PAY = p;
+  payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
+  payEls.level.append(new Option(t("payAny"), ""), ...p.levels.map(l => new Option(STR.levelNames[l] || l, l)), new Option(t("payNoLevel"), "none"));
+  payEls.covers.append(new Option(t("payAny"), ""), ...p.covers.map((c, i) => new Option(c, String(i))));
+  for (const e of Object.values(payEls)) e.addEventListener("input", () => { payShown = 50; renderPay(); });
+  renderPay();
+}).catch(() => {});
+const money = n => "$" + Math.round(n).toLocaleString("en-US");
+function renderPay() {
+  const sec = document.getElementById("pay-section");
+  if (!PAY || !shownPlace) { sec.hidden = true; return; }
+  sec.hidden = false;
+  const pid = shownPlace.answerId || shownPlace.id, ans = DATA.answers[pid];
+  const coIdx = selectedCompany ? DATA.companies.list.indexOf(selectedCompany) : -1;
+  document.getElementById("pay-heading").textContent = selectedCompany
+    ? t("payHeadingCo", { company: selectedCompany.name, place: shownPlace.label }) : t("payHeading", { place: shownPlace.label });
+  document.getElementById("pay-intro").textContent = t("payIntro", { date: PAY.snapshot });
+  const role = payEls.role.value, level = payEls.level.value, cov = payEls.covers.value, q = norm(payEls.q.value.trim());
+  const hits = PAY.rows.filter(r => {
+    const [ci, pi, zi, , , covers, lvlR] = r, post = PAY.postings[pi];
+    if (coIdx >= 0 && ci !== coIdx) return false;
+    if (zi !== -1 && ans[ci][0] !== zi) return false;
+    if (zi === -1 && ans[ci][0] < 0) return false;
+    if (role !== "" && String(post[1]) !== role) return false;
+    if (cov !== "" && String(covers) !== cov) return false;
+    const lv = lvlR || post[2];
+    if (level === "none" ? !!lv : (level !== "" && lv !== level)) return false;
+    if (q && !norm(post[0]).includes(q)) return false;
+    return true;
+  });
+  hits.sort((a, b) => b[4] - a[4]);
+  const posts = new Set(hits.map(r => r[1])), cos = new Set(hits.map(r => r[0]));
+  document.getElementById("pay-count").textContent = hits.length ? t("payCount", { n: hits.length, p: posts.size, c: cos.size }) : t("payNone");
+  const tb = document.getElementById("pay-rows"); tb.replaceChildren();
+  for (const [ci, pi, zi, mn, mx, covers, lvlR] of hits.slice(0, payShown)) {
+    const co = DATA.companies.list[ci], post = PAY.postings[pi], tr = document.createElement("tr");
+    const tdJ = el("td"); const a = el("a", "", post[0]); a.href = post[3]; a.target = "_blank"; a.rel = "noopener";
+    tdJ.append(el("div", "co", co.name), a, el("div", "sub", PAY.families[post[1]] + (post[4] ? " \u00b7 " + t("payPosted", { date: post[4] }) : "")));
+    const lv = lvlR || post[2];
+    const tdL = el("td"); tdL.append(el("div", "", lv ? (STR.levelNames[lv] || lv) : t("payNoLevel")));
+    if (lv) tdL.append(el("div", "sub", lvlR ? t("payFromRange") : t("payFromTitle")));
+    const tdR = el("td"); tdR.append(el("div", "amt", money(mn) + " \u2013 " + money(mx)));
+    tdR.append(el("div", "sub", zi === -1 ? t("payAnyZone") : co.zones[zi]));
+    const tdC = el("td"); tdC.append(el("span", "tag", PAY.covers[covers]));
+    if (post[5].length) tdC.append(el("div", "sub", t("payAlso", { what: post[5].map(w => STR.payAlsoWords[w]).join(", ") })));
+    tr.append(tdJ, tdL, tdR, tdC); tb.append(tr);
+  }
+  const more = document.getElementById("pay-more");
+  more.hidden = hits.length <= payShown; more.textContent = t("payMore");
+}
+document.getElementById("pay-more").addEventListener("click", () => { payShown += 50; renderPay(); });
+
 
 // ---- Company search (24 Nov, Randi: too many companies for a dropdown) ----
 // A company on its own shows that company's published zone list and its map;

@@ -126,6 +126,16 @@ td.co { font-weight: 600; }
 :root[data-theme="dark"] { --z0: #cfe6f7; --z1: #7fb6de; --z2: #3f7aa6; --z3: #1f4565; --znone: #4a4339; }
 
 .next { display: grid; gap: 0.6rem; }
+.paysec { display: grid; gap: 0.8rem; }
+.payfilters { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: end; }
+.payfilters > div { display: grid; gap: 0.3rem; min-width: 0; }
+.payfilters .grow { flex: 1 1 14rem; }
+.payfilters label { font-weight: 600; font-size: 0.9rem; }
+.payfilters select, .payfilters input { font: inherit; padding: 0.5rem 0.6rem; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+.paytable .amt { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.paytable .co { font-weight: 600; }
+.paytable .sub { font-size: 0.85rem; color: var(--muted); }
+.tag { display: inline-block; font-size: 0.78rem; padding: 0.05rem 0.4rem; border-radius: 4px; background: var(--accent-soft); color: var(--ink); margin-top: 0.2rem; }
 .doc { max-width: 46rem; }
 .doc section { display: grid; gap: 0.6rem; }
 .doc ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.5rem; max-width: 65ch; }
