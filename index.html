@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css?v=c4a6045c71">
+<link rel="stylesheet" href="styles.css?v=fa3d47a419">
 
 </head>
 <body>
@@ -110,6 +110,8 @@
       <div class="grow"><label for="pay-q" id="pay-q-label"></label><input id="pay-q" type="search" autocomplete="off"></div>
     </div>
     <p class="mapcap" id="pay-count" aria-live="polite"></p>
+    <p class="hint" id="pay-coverage"></p>
+    <details class="paycov" id="pay-coverage-all"><summary id="pay-coverage-summary"></summary><ul id="pay-coverage-list"></ul></details>
     <div class="tablewrap">
       <table class="paytable">
         <thead><tr><th id="pth-job"></th><th id="pth-level"></th><th id="pth-range"></th><th id="pth-covers"></th></tr></thead>
@@ -122,6 +124,11 @@
   <section class="next" aria-labelledby="next-heading">
     <h2 id="next-heading"></h2>
     <ul id="next-list"></ul>
+  </section>
+
+  <section class="next" aria-labelledby="covers-heading">
+    <h2 id="covers-heading"></h2>
+    <ul id="covers-list"></ul>
   </section>
 
   <section class="next" aria-labelledby="world-heading">
@@ -139,6 +146,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=5f586f1c49"></script>
+<script src="app.js?v=f199256a33"></script>
 </body>
 </html>

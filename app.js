@@ -111,8 +111,22 @@ const STR = {
   pthRange: "Range for your zone",
   pthCovers: "What it covers",
   payAnyZone: "same in every location",
-  payFromTitle: "matched from title",
-  payFromRange: "from the range label",
+  payFromTitle: "matched from the title word \u201c{word}\u201d",
+  payFromRange: "from the range label \u201c{word}\u201d",
+  payCoverageCo: "At {company}, {shown} of the {read} current US postings we read show a range we can match to a zone; {ranged} list a pay range at all.",
+  payCoverageSummary: "How complete this is, by company",
+  payCoverageLine: "{company}: {shown} of {read} current US postings shown ({ranged} list a range)",
+  payCoverageNote: "Postings without a range, or with ranges for places we can't match to a zone, aren't shown. Up to 150 postings per company are read each week.",
+  payWrongSubject: "Pay range report: {company}, {title}",
+  payWrongBody: "PayZoneMap shows: {title} at {company}\nLevel: {level}\nRange: {range} ({zone})\nCovers: {covers}\nPosting: {url}\n\nWhat's wrong (the level, the range, or what it covers):\n\nPage: {page}\n\n(No need to include your name or pay.)",
+  coversHeading: "What a pay range covers",
+  covers: [
+    "Base pay: salary only. Bonus, commission, equity and benefits are on top, if offered.",
+    "Base plus bonus target: the range already includes a target bonus, so the salary part is lower than the number shown.",
+    "On-target earnings: base plus commission at full quota, common in sales. Part of it depends on hitting targets.",
+    "Total compensation: base plus bonus and often equity, all in one number.",
+    "These aren't the same money, so ranges here are labelled with what they cover and never averaged together. When you compare offers, or ask for a raise, compare like with like. If a posting doesn't say, it's marked \u201cNot stated\u201d."
+  ],
   payAlso: "Also offered: {what}",
   payAlsoWords: { equity: "equity", bonus: "bonus" },
   payPosted: "Posted {date}",
@@ -252,6 +266,8 @@ for (const [id, key] of [["title","title"],["lede","lede"],["place-label","place
   const mail = el("a", "", t("contactEmail")); mail.href = "mailto:" + t("contactEmail");
   c.append(t("contact"), mail, ".");
 }
+document.getElementById("covers-heading").textContent = t("coversHeading");
+document.getElementById("covers-list").append(...STR.covers.map(s => el("li", "", s)));
 document.getElementById("world-heading").textContent = t("worldHeading");
 document.getElementById("world-list").append(...STR.world.map((s, i) => {
   const li = el("li", "", s);
@@ -471,7 +487,7 @@ render = (place, isExample) => { shownPlace = place; shownExample = isExample; r
 let PAY = null, payShown = 50;
 const payEls = { role: document.getElementById("pay-role"), level: document.getElementById("pay-level"),
   covers: document.getElementById("pay-covers"), q: document.getElementById("pay-q") };
-fetch("pay.json?v=3866b3c8f3").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=003f05a138").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
@@ -507,18 +523,38 @@ function renderPay() {
   const posts = new Set(hits.map(r => r[1])), cos = new Set(hits.map(r => r[0]));
   document.getElementById("pay-count").textContent = hits.length ? t("payCount", { n: hits.length, p: posts.size, c: cos.size }) : t("payNone");
   const tb = document.getElementById("pay-rows"); tb.replaceChildren();
-  for (const [ci, pi, zi, mn, mx, covers, lvlR] of hits.slice(0, payShown)) {
+  for (const [ci, pi, zi, mn, mx, covers, lvlR, r8] of hits.slice(0, payShown)) {
     const co = DATA.companies.list[ci], post = PAY.postings[pi], tr = document.createElement("tr");
     const tdJ = el("td"); const a = el("a", "", post[0]); a.href = post[3]; a.target = "_blank"; a.rel = "noopener";
     tdJ.append(el("div", "co", co.name), a, el("div", "sub", PAY.families[post[1]] + (post[4] ? " \u00b7 " + t("payPosted", { date: post[4] }) : "")));
     const lv = lvlR || post[2];
     const tdL = el("td"); tdL.append(el("div", "", lv ? (STR.levelNames[lv] || lv) : t("payNoLevel")));
-    if (lv) tdL.append(el("div", "sub", lvlR ? t("payFromRange") : t("payFromTitle")));
+    const word = lvlR ? r8 : post[6];
+    if (lv) tdL.append(el("div", "sub", word ? (lvlR ? t("payFromRange", { word }) : t("payFromTitle", { word })) : ""));
     const tdR = el("td"); tdR.append(el("div", "amt", money(mn) + " \u2013 " + money(mx)));
     tdR.append(el("div", "sub", zi === -1 ? t("payAnyZone") : co.zones[zi]));
     const tdC = el("td"); tdC.append(el("span", "tag", PAY.covers[covers]));
     if (post[5].length) tdC.append(el("div", "sub", t("payAlso", { what: post[5].map(w => STR.payAlsoWords[w]).join(", ") })));
+    const wr = el("a", "wrong", t("wrong"));
+    wr.href = "mailto:" + t("contactEmail") + "?subject=" + encodeURIComponent(t("payWrongSubject", { company: co.name, title: post[0] }))
+      + "&body=" + encodeURIComponent(t("payWrongBody", { title: post[0], company: co.name, level: lv ? (STR.levelNames[lv] || lv) : t("payNoLevel"),
+        range: money(mn) + " - " + money(mx), zone: zi === -1 ? t("payAnyZone") : co.zones[zi], covers: PAY.covers[covers], url: post[3],
+        page: location.origin + location.pathname + location.hash }));
+    tdC.append(wr);
     tr.append(tdJ, tdL, tdR, tdC); tb.append(tr);
+  }
+  // Coverage: postings without a range are data too (DevOps Docket review).
+  const covP = document.getElementById("pay-coverage"), covAll = document.getElementById("pay-coverage-all");
+  if (coIdx >= 0) {
+    const cv = PAY.coverage[String(coIdx)];
+    covAll.hidden = true;
+    covP.textContent = cv ? t("payCoverageCo", { company: selectedCompany.name, shown: cv[2], read: cv[0], ranged: cv[1] }) + " " + t("payCoverageNote") : "";
+  } else {
+    covP.textContent = t("payCoverageNote");
+    covAll.hidden = false;
+    document.getElementById("pay-coverage-summary").textContent = t("payCoverageSummary");
+    const ul = document.getElementById("pay-coverage-list"); ul.replaceChildren();
+    for (const [k, cv] of Object.entries(PAY.coverage)) ul.append(el("li", "", t("payCoverageLine", { company: DATA.companies.list[+k].name, shown: cv[2], read: cv[0], ranged: cv[1] })));
   }
   const more = document.getElementById("pay-more");
   more.hidden = hits.length <= payShown; more.textContent = t("payMore");
