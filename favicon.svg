@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PayZoneMap">
+  <!-- A map pin whose head holds three bands: a company's zones, highest pay
+       at the top. The bands use the site's zone ramp (dark = top zone). -->
+  <defs>
+    <clipPath id="head"><circle cx="256" cy="212" r="94"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0f3d5e"/>
+  <path d="M256 452 C212 384 120 318 120 212 A136 136 0 1 1 392 212 C392 318 300 384 256 452 Z" fill="#ffffff"/>
+  <g clip-path="url(#head)">
+    <rect x="150" y="118" width="212" height="54" fill="#0f3d5e"/>
+    <rect x="150" y="185" width="212" height="54" fill="#2f78a8"/>
+    <rect x="150" y="252" width="212" height="54" fill="#79acd0"/>
+  </g>
+</svg>

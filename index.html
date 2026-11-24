@@ -5,15 +5,36 @@
 <meta charset="utf-8">
 <title>Which pay zone am I in?</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Published US pay zones from each company's own pages, side by side and mapped by county. Pick where you live and see the zone you'd land in.">
+<link rel="canonical" href="https://payzonemap.com/">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11161c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PayZoneMap">
+<meta property="og:url" content="https://payzonemap.com/">
+<meta property="og:title" content="Which pay zone am I in? · PayZoneMap">
+<meta property="og:description" content="Published US pay zones from each company's own pages, side by side and mapped by county. Pick where you live and see the zone you'd land in.">
+<meta property="og:image" content="https://payzonemap.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The PayZoneMap pin beside the words Which pay zone am I in?, and a US county map shaded by typical pay zone">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://payzonemap.com/og-image.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css?v=2a124a7cd8">
+<link rel="stylesheet" href="styles.css?v=173ad420ff">
 
 </head>
 <body>
 <main>
   <header class="intro">
+    <a class="brandmark" href="/"><img src="/brand/logo.svg" alt="" width="40" height="40"><span>PayZoneMap</span></a>
     <h1 id="title"></h1>
     <p class="lede" id="lede"></p>
   </header>
@@ -68,6 +89,11 @@
     <ul id="next-list"></ul>
   </section>
 
+  <section class="next" aria-labelledby="world-heading">
+    <h2 id="world-heading"></h2>
+    <ul id="world-list"></ul>
+  </section>
+
   <footer class="about" aria-labelledby="about-heading">
     <h2 id="about-heading"></h2>
     <ul id="about-list"></ul>
@@ -77,6 +103,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=d2f14fa41d"></script>
+<script src="app.js?v=33dd8be0a7"></script>
 </body>
 </html>

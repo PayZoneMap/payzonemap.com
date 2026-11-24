@@ -44,6 +44,8 @@ p { margin: 0; max-width: 65ch; }
 a { color: var(--accent); }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .intro { display: grid; gap: 0.75rem; }
+.brandmark { display: inline-flex; align-items: center; gap: 0.55rem; justify-self: start; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
+.brandmark img { width: 2.5rem; height: 2.5rem; border-radius: 0.55rem; }
 .lede { color: var(--muted); font-size: 1.1rem; }
 .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
@@ -90,6 +92,7 @@ td.co { font-weight: 600; }
 .why { font-size: 0.92rem; }
 .basis { font-size: 0.85rem; margin-top: 0.3rem; }
 .basis strong { font-weight: 600; }
+.reported { margin-top: 0.45rem; padding: 0.35rem 0.5rem; border-left: 3px solid var(--warn); background: var(--warn-soft); font-size: 0.85rem; border-radius: 0 4px 4px 0; }
 .wrong { display: inline-block; margin-top: 0.4rem; font-size: 0.85rem; }
 .note { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
 .src { font-size: 0.85rem; }

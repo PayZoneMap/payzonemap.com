@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=497594ff59").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=4ba2e64867").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -46,6 +46,12 @@ const STR = {
   thSrc: "Source",
   rank: "{band} of their scale: {pos} of {count} zones",
   wrong: "Was this wrong?",
+  reportedLabel: "Reported by people: ",
+  reportedOne: "1 was told {zone}",
+  reportedMany: "{n} were told {zone}",
+  reportedSpan: " ({span}).",
+  reportedDiffers: " This differs from the published list.",
+  months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   basisLabel: "Zone follows: ",
   basis: { home: "where you live", work: "where you work", yours: "your location (home or office not said)", none: "not stated" },
   wrongSubject: "Zone report: {company}, {place}",
@@ -69,6 +75,14 @@ const STR = {
     "Zones change. Each row shows when we last checked the company's page.",
     "Companies differ on whether your zone follows where you live or where you work. Each row shows what that company says. If you'd live in one zone and commute to an office in another, ask which one counts."
   ],
+  worldHeading: "Why only the US?",
+  world: [
+    "A company can only pay you in a country where it can legally employ you. That takes its own company there, or a hiring service (an employer of record) that employs you on its behalf.",
+    "Each country brings its own payroll tax, benefits and labor law, so pay is set country by country. Many companies that use US zones use one pay level per country elsewhere, or none at all where they don't hire.",
+    "US sanctions rules bar or restrict hiring in some places, such as Cuba, Iran, North Korea and the Crimea region. The US Treasury's Office of Foreign Assets Control keeps the current list.",
+    "The same idea applies inside the US. Some companies only hire remote staff in states where they're registered to employ people, and some postings list states they can't hire in. If you're remote, check that your state is on the list before you look at zones."
+  ],
+  worldLink: "See the Office of Foreign Assets Control's sanctions programs",
   aboutHeading: "Where this comes from",
   termsLink: "Terms, privacy and credits",
   contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
@@ -154,6 +168,19 @@ function render(place, isExample) {
     // Randi, 23 Nov: "was this wrong" so people can tell us the zone they
     // were actually given. First version is a pre-filled email; reports are
     // read by a person and never change a zone on their own.
+    // Reports are their own layer (decided 24 Nov): counted, dated, and
+    // never mixed into the published zone above them.
+    const rp = ((DATA.reports || {})[place.answerId || place.id] || {})[DATA.companies.list.indexOf(co)];
+    if (rp) {
+      const parts = Object.entries(rp.z).sort((a, b) => b[1] - a[1]).map(([zi, n]) =>
+        t(n === 1 ? "reportedOne" : "reportedMany", { n, zone: co.zones[+zi] }));
+      const mon = ym => STR.months[+ym.slice(5) - 1] + " " + ym.slice(0, 4);
+      const span = rp.from === rp.to ? mon(rp.from) : mon(rp.from) + " to " + mon(rp.to);
+      const differs = Object.keys(rp.z).some(zi => co.zones[+zi] !== z.zone);
+      const box = el("div", "reported");
+      box.append(el("strong", "", t("reportedLabel")), parts.join(", ") + t("reportedSpan", { span }) + (differs ? t("reportedDiffers") : ""));
+      tdZ.append(box);
+    }
     const wrong = el("a", "wrong", t("wrong"));
     wrong.href = "mailto:" + t("contactEmail") + "?subject=" + encodeURIComponent(t("wrongSubject", { company: co.name, place: place.label }))
       + "&body=" + encodeURIComponent(t("wrongBody", { company: co.name, place: place.label,
@@ -190,6 +217,15 @@ for (const [id, key] of [["title","title"],["lede","lede"],["place-label","place
   const mail = el("a", "", t("contactEmail")); mail.href = "mailto:" + t("contactEmail");
   c.append(t("contact"), mail, ".");
 }
+document.getElementById("world-heading").textContent = t("worldHeading");
+document.getElementById("world-list").append(...STR.world.map((s, i) => {
+  const li = el("li", "", s);
+  if (i === 2) {
+    const a = el("a", "", t("worldLink")); a.href = "https://ofac.treasury.gov/sanctions-programs-and-country-information";
+    a.target = "_blank"; a.rel = "noopener"; li.append(" ", a, ".");
+  }
+  return li;
+}));
 document.getElementById("next-list").append(...STR.next.map(s => el("li", "", s)));
 document.getElementById("about-list").append(...STR.about.map(s =>
   el("li", "", s.replace("{year}", DATA.year).replace("{bay}", DATA.companies.bayNote))));
