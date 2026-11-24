@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css?v=fa3d47a419">
+<link rel="stylesheet" href="styles.css?v=3d3f7054aa">
 
 </head>
 <body>
@@ -54,7 +54,18 @@
       <ul class="options" id="company-options" role="listbox" hidden></ul>
       <p class="hint" id="company-hint"></p>
     </div>
+    <div class="search">
+      <label for="role-input" id="role-label"></label>
+      <input id="role-input" type="search" autocomplete="off" aria-describedby="role-hint">
+      <p class="hint" id="role-hint"></p>
+    </div>
+    <div class="search">
+      <label for="amt-input" id="amt-label"></label>
+      <input id="amt-input" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amt-hint">
+      <p class="hint" id="amt-hint"></p>
+    </div>
   </div>
+  <p class="searchpay" id="search-pay" aria-live="polite" hidden><span id="search-pay-text"></span> <button type="button" class="linkbtn" id="search-pay-link"></button></p>
 
   <section class="place company-panel" id="company-panel" aria-labelledby="company-name" hidden>
     <div>
@@ -101,7 +112,7 @@
   </section>
 
   <section class="paysec" id="pay-section" aria-labelledby="pay-heading" hidden>
-    <h2 id="pay-heading"></h2>
+    <h2 id="pay-heading" tabindex="-1"></h2>
     <p class="hint" id="pay-intro"></p>
     <div class="payfilters">
       <div><label for="pay-where" id="pay-where-label"></label><select id="pay-where"></select></div>
@@ -150,7 +161,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="app.js?v=3c878262ea"></script>
+<script src="app.js?v=bc74229643"></script>
 <!-- 24 Nov: visit counts, to see which LinkedIn posts send people here
      (utm_campaign, see MyMetrics README "Tagged links"). count.js is GoatCounter's
      own script, kept here so the page runs a pinned copy; it counts once on load,

@@ -9,7 +9,7 @@ function main(DATA) {
 // Every visible string lives here, one whole sentence per key (house rule for new products).
 const STR = {
   title: "Which pay zone am I in?",
-  lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live, a company, or both, to see the zone you'd land in at companies that publish their lists.",
+  lede: "Remote jobs often set pay by location zone, and every company draws its zones differently. Pick where you live, a company, or both, to see the zone you'd land in at companies that publish their lists. Add a role or a pay amount to see what companies post for it, and in which zones.",
   placeLabel: "Where do you live?",
   companyLabel: "Company",
   companyHint: "Type a company name, or leave it empty to see all of them.",
@@ -101,6 +101,9 @@ const STR = {
   payIntroAll: "Each range is the company's own, from a current job posting, with the zone it applies to. Read {date}. Search a role or title to see what it pays across companies and zones. The level is our match from the job title, on an IC1 to IC7 and M1 to M7 scale; companies use their own ladders.",
   payHourly: "{range} an hour",
   payAmt: "Pay amount",
+  roleLabel: "Role or job title",
+  roleHint: "Words from the job title, like product manager or data engineer.",
+  searchPayLink: "See the postings",
   payAmtHint: "Enter a yearly figure like 150k, or an hourly rate like 25, to see which postings have a range that includes it.",
   payAmtBad: "Enter a number, like 150k or 25.",
   payAmtCovers: "Matching {covers} ranges only. Change \u201cWhat the range covers\u201d to match another kind of pay.",
@@ -270,7 +273,7 @@ function render(place, isExample) {
 }
 
 // Static text
-for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["pay-where-label","payWhere"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pay-amt-label","payAmt"],["pay-amt-hint","payAmtHint"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
+for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["role-label","roleLabel"],["role-hint","roleHint"],["amt-label","payAmt"],["amt-hint","payAmtHint"],["search-pay-link","searchPayLink"],["pay-where-label","payWhere"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pay-amt-label","payAmt"],["pay-amt-hint","payAmtHint"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
   ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["story-link","storyLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
@@ -507,6 +510,11 @@ const payEls = { where: document.getElementById("pay-where"), role: document.get
 // it. Ranges are matched only against ranges that cover the same kind of pay:
 // with "Any" chosen, it switches to base pay and says so. Counts, no averages.
 let payCoversAuto = false;
+// Top search (24 Nov). The role and pay search lived only in the pay section,
+// below the map, where a first visit never scrolled. The top fields are the
+// same two boxes as the pay section's title and amount, kept in step both
+// ways, with a count and a button down to the postings.
+const topEls = { role: document.getElementById("role-input"), amt: document.getElementById("amt-input") };
 function payAmountOf(s) {
   s = (s || "").toLowerCase().replace(/[$,\s]/g, "");
   const hr = /(\/h(ou)?r|perhour|anhour|hourly|\/h)$/.test(s);
@@ -525,6 +533,15 @@ fetch("pay.json?v=6cc7382a3b").then(r => r.ok ? r.json() : null).then(p => {
   payEls.where.append(new Option("", "here"), new Option(t("payWhereAll"), "all"));
   payEls.where.value = shownExample ? "all" : "here";
   for (const e of Object.values(payEls)) e.addEventListener("input", () => { payShown = 50; payWhereTouched ||= e === payEls.where; renderPay(); });
+  for (const [top, box] of [[topEls.role, payEls.q], [topEls.amt, payEls.amt]])
+    top.addEventListener("input", () => { box.value = top.value; payShown = 50; renderPay(); });
+  // A button, not a #pay-section link: the address holds the place and company
+  // (fromHash), and a hash change to #pay-section cleared the chosen company.
+  document.getElementById("search-pay-link").addEventListener("click", () => {
+    const h = document.getElementById("pay-heading"); h.scrollIntoView({ behavior: "smooth", block: "start" }); h.focus({ preventScroll: true });
+  });
+  // Anything typed at the top before pay.json arrived.
+  payEls.q.value ||= topEls.role.value; payEls.amt.value ||= topEls.amt.value;
   renderPay();
 }).catch(() => {});
 const money = n => "$" + Math.round(n).toLocaleString("en-US");
@@ -586,6 +603,11 @@ function renderPay() {
     countText += " " + t("payByRole", { list: [...fam].sort((a, b) => b[1] - a[1]).map(([f, n]) => f + " " + n).join(", ") });
   }
   document.getElementById("pay-count").textContent = countText;
+  if (topEls.role.value !== payEls.q.value) topEls.role.value = payEls.q.value;
+  if (topEls.amt.value !== payEls.amt.value) topEls.amt.value = payEls.amt.value;
+  const sp = document.getElementById("search-pay");
+  sp.hidden = !payEls.q.value.trim() && !amtRaw;
+  document.getElementById("search-pay-text").textContent = amtRaw && amt === null ? t("payAmtBad") : countText;
   const tb = document.getElementById("pay-rows"); tb.replaceChildren();
   for (const [ci, pi, zi, mn, mx, covers, lvlR, r8] of hits.slice(0, payShown)) {
     const co = DATA.companies.list[ci], post = PAY.postings[pi], tr = document.createElement("tr");
