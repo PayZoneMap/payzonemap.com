@@ -57,7 +57,7 @@ const STR = {
   ],
   aboutHeading: "Where this comes from",
   contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
-  contactEmail: "salesforcegirl+zone@gmail.com",
+  contactEmail: "hello@payzonemap.com",
   about: [
     "Company zones come from each company's own careers page, linked in its row. Where a company lists cities, we matched each city to its metro area.",
     "Price figures are the Bureau of Economic Analysis Regional Price Parities for {year}, all items and housing. 100 is the US average.",
