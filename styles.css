@@ -150,3 +150,8 @@ td.co { font-weight: 600; }
 /* Placeholders carry the examples that used to be hint lines (24 Nov). Muted
    ink rather than the browser's faint default, so they stay readable. */
 input::placeholder { color: var(--muted); opacity: 1; }
+/* Longer notes fold away (24 Nov: "keep it simple, if they want more info lets
+   provide it"). The heading is the click target; the list opens under it. */
+.more summary { cursor: pointer; }
+.more summary h2 { display: inline; }
+.more[open] summary { margin-bottom: 0.6rem; }
