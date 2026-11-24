@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=b8def131b1").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=c68b020394").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -44,7 +44,15 @@ const STR = {
   thZone: "Your zone",
   thWhy: "Why",
   thSrc: "Source",
-  rank: "{pos} of {count} zones, highest pay first",
+  rank: "{band} of their scale: {pos} of {count} zones",
+  bandWord: { top: "Top", middle: "Middle", bottom: "Bottom" },
+  mapAll: "All companies (typical zone)",
+  typical: ["Usually a top zone", "Usually a middle zone", "Usually a bottom zone"],
+  typicalWhat: "Across the {n} companies that list it: top at {t}, middle at {m}, bottom at {b}. Worked out from their lists.",
+  typicalNone: "No company lists this place yet.",
+  mapCountyAll: "{county}, {st}: {place}. {typical}: top at {t}, middle at {m}, bottom at {b} of {n} companies.",
+  likely: "Most companies that list this place put it in their {band} zone ({k} of {n}).",
+  bandLower: { top: "top", middle: "middle", bottom: "bottom" },
   notListed: "Not listed",
   ordinal: ["Highest", "2nd", "3rd", "4th", "5th", "6th"],
   checked: "Checked {date}",
@@ -109,6 +117,9 @@ function render(place, isExample) {
   hb.hidden = place.kind !== "metro";
   if (place.kind === "metro") document.getElementById("fact-housing").textContent = pct(place.metro.housing);
   document.getElementById("fact-band").textContent = band(all);
+  const cs = DATA.consensus[place.answerId || place.id];
+  document.getElementById("fact-typical").textContent = cs[3] ? STR.typical[typicalIdx(cs)] : STR.typicalNone;
+  document.getElementById("fact-typical-what").textContent = cs[3] ? t("typicalWhat", { n: cs[3], t: cs[0], m: cs[1], b: cs[2] }) : "";
 
   const rows = document.getElementById("rows");
   rows.replaceChildren();
@@ -123,9 +134,14 @@ function render(place, isExample) {
       tdZ.append(el("div", "zone", z.label || z.zone));
       const lad = el("div", "ladder"); lad.setAttribute("aria-hidden", "true");
       co.zones.forEach((_, i) => lad.append(el("span", i === pos ? "on" : "")));
-      tdZ.append(lad, el("div", "rank", t("rank", { pos: STR.ordinal[pos], count: co.zones.length })));
+      const bw = STR.bandWord[bandOf(pos, co.zones.length)];
+      tdZ.append(lad, el("div", "rank", t("rank", { band: bw, pos: STR.ordinal[pos], count: co.zones.length })));
     } else {
       tdZ.append(el("div", "zone unknown", t("notListed")));
+      // Randi, 23 Nov: if 5 or more companies that list this place mostly
+      // agree, that's a good bet for one that doesn't. Shown with its count.
+      const lk = likelyBand(place);
+      if (lk) tdZ.append(el("div", "rank", t("likely", { band: STR.bandLower[lk.band], k: lk.k, n: lk.n })));
     }
     tr.append(tdZ);
 
@@ -246,18 +262,39 @@ function placeForCounty(id) {
   const code = DATA.countyMetro[id];
   return code ? placeById["m" + code] : placeById["st-" + (stateByFips[id.slice(0, 2)] || {}).st];
 }
+function bandOf(i, n) { return i === 0 ? "top" : i === n - 1 ? "bottom" : "middle"; }
+// Average position across listing companies, 0 = their top zone, 100 = bottom.
+function typicalIdx(cs) { return cs[4] < 34 ? 0 : cs[4] < 67 ? 1 : 2; }
+function likelyBand(place) {
+  const cs = DATA.consensus[place.answerId || place.id];
+  if (!cs || cs[3] < 5) return null;
+  const counts = { top: cs[0], middle: cs[1], bottom: cs[2] };
+  const [band, k] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return k * 2 > cs[3] ? { band, k, n: cs[3] } : null;
+}
+const TYPICAL_COLORS = ["var(--z0)", "var(--z1)", "var(--z3)"];
+const isAll = () => mapSel.value === "__all";
 function zoneColor(co, zone) {
   if (!zone) return "var(--znone)";
   const n = co.zones.length, i = co.zones.indexOf(zone);
   return `var(--z${n === 1 ? 0 : Math.round(i * 3 / (n - 1))})`;
 }
 function paintMap() {
-  const co = DATA.companies.list[mapSel.selectedIndex];
-  for (const c of counties) c.el.setAttribute("fill", c.place ? zoneColor(co, zoneFor(co, c.place).zone) : "var(--znone)");
   const leg = document.getElementById("legend");
   leg.replaceChildren();
-  const items = co.zones.map(z => [z, zoneColor(co, z)]);
-  if (!co.default) items.push([t("notListed"), "var(--znone)"]);
+  let items;
+  if (isAll()) {
+    for (const c of counties) {
+      const cs = c.place && DATA.consensus[c.place.id];
+      c.el.setAttribute("fill", cs && cs[3] ? TYPICAL_COLORS[typicalIdx(cs)] : "var(--znone)");
+    }
+    items = STR.typical.map((name, i) => [name, TYPICAL_COLORS[i]]);
+  } else {
+    const co = DATA.companies.list.find(x => x.name === mapSel.value);
+    for (const c of counties) c.el.setAttribute("fill", c.place ? zoneColor(co, zoneFor(co, c.place).zone) : "var(--znone)");
+    items = co.zones.map(z => [z, zoneColor(co, z)]);
+    if (!co.default) items.push([t("notListed"), "var(--znone)"]);
+  }
   for (const [name, col] of items) {
     const li = el("li"); const sw = el("span", "swatch"); sw.style.background = col;
     li.append(sw, el("span", "", name)); leg.append(li);
@@ -282,8 +319,9 @@ let MAPTOPO = null;
 async function initMap() {
   const box = document.getElementById("mapbox");
   document.getElementById("map-loading").textContent = t("mapLoading");
+  mapSel.append(new Option(t("mapAll"), "__all"));
   for (const co of DATA.companies.list) mapSel.append(new Option(co.name, co.name));
-  mapSel.value = "Block";
+  mapSel.value = "__all";
   try {
     if (!window.topojson) throw new Error("topojson-client missing");
     MAPTOPO = await (await fetch("counties.json?v=d907231047")).json();
@@ -301,7 +339,15 @@ async function initMap() {
     const st = stateByFips[f.id.slice(0, 2)];
     const c = { el: p, id: f.id, name: f.properties.name, st: st ? st.st : "", place: placeForCounty(f.id) };
     const show = () => {
-      const co = DATA.companies.list[mapSel.selectedIndex];
+      if (isAll()) {
+        const cs = c.place && DATA.consensus[c.place.id];
+        if (cs && cs[3]) {
+          mapCap.textContent = t("mapCountyAll", { county: c.name, st: c.st, place: c.place.label,
+            typical: STR.typical[typicalIdx(cs)], t: cs[0], m: cs[1], b: cs[2], n: cs[3] });
+        }
+        return;
+      }
+      const co = DATA.companies.list.find(x => x.name === mapSel.value);
       const z = c.place ? zoneFor(co, c.place) : { zone: null };
       mapCap.textContent = t("mapCounty", { county: c.name, st: c.st, place: c.place ? c.place.label : c.st,
         zone: z.zone ? (z.label || z.zone) : t("mapNotListed"), company: co.name });
