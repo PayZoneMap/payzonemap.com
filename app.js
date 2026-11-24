@@ -45,6 +45,9 @@ const STR = {
   thWhy: "Why",
   thSrc: "Source",
   rank: "{band} of their scale: {pos} of {count} zones",
+  wrong: "Was this wrong?",
+  wrongSubject: "Zone report: {company}, {place}",
+  wrongBody: "PayZoneMap shows: {zone} at {company} for {place}.\n\nThe zone I was given:\n\nWho told me (recruiter, offer letter, job posting link):\n\nWhen:\n\nRemote, hybrid or in the office:\n\nPage: {url}\n\n(No need to include your name or pay.)",
   bandWord: { top: "Top", middle: "Middle", bottom: "Bottom" },
   mapAll: "All companies (typical zone)",
   typical: ["Usually a top zone", "Usually a middle zone", "Usually a bottom zone"],
@@ -145,6 +148,14 @@ function render(place, isExample) {
     }
     tr.append(tdZ);
 
+    // Randi, 23 Nov: "was this wrong" so people can tell us the zone they
+    // were actually given. First version is a pre-filled email; reports are
+    // read by a person and never change a zone on their own.
+    const wrong = el("a", "wrong", t("wrong"));
+    wrong.href = "mailto:" + t("contactEmail") + "?subject=" + encodeURIComponent(t("wrongSubject", { company: co.name, place: place.label }))
+      + "&body=" + encodeURIComponent(t("wrongBody", { company: co.name, place: place.label,
+        zone: z.zone ? (z.label || z.zone) : t("notListed"), url: location.origin + location.pathname + "#" + (place.hashId || place.id) }));
+    tdZ.append(wrong);
     const tdW = el("td", "why");
     tdW.append(el("div", "", z.why));
     if (co.notes) tdW.append(el("div", "note", co.notes));
