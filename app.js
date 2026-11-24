@@ -119,6 +119,7 @@ const STR = {
   levelNames: { IC1: "IC1 entry", IC2: "IC2 mid", IC3: "IC3 senior", IC4: "IC4 staff", IC5: "IC5 senior staff", IC6: "IC6 principal", IC7: "IC7 distinguished", M1: "M1 manager", M2: "M2 senior manager", M3: "M3 director", M4: "M4 senior director", M5: "M5 VP", M6: "M6 SVP", M7: "M7 C-level" },
   aboutHeading: "Where this comes from",
   termsLink: "Terms, privacy and credits",
+  storyLink: "The story behind PayZoneMap",
   contact: "See a zone that's out of date, or work at one of these companies and want it corrected? Email ",
   contactEmail: "hello@payzonemap.com",
   about: [
@@ -243,7 +244,7 @@ function render(place, isExample) {
 // Static text
 for (const [id, key] of [["title","title"],["lede","lede"],["place-label","placeLabel"],["place-hint","placeHint"],["company-label","companyLabel"],["company-hint","companyHint"],["company-clear","companyClear"],["pay-role-label","payRole"],["pay-level-label","payLevel"],["pay-covers-label","payCovers"],["pay-q-label","payQ"],["pth-job","pthJob"],["pth-level","pthLevel"],["pth-range","pthRange"],["pth-covers","pthCovers"],
   ["example-flag","example"],["fact-housing-what","housingWhat"],["fact-band-what","bandWhat"],["table-heading","tableHeading"],
-  ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["about-heading","aboutHeading"]]) {
+  ["th-co","thCo"],["th-zone","thZone"],["th-why","thWhy"],["th-src","thSrc"],["next-heading","nextHeading"],["terms-link","termsLink"],["story-link","storyLink"],["about-heading","aboutHeading"]]) {
   document.getElementById(id).textContent = t(key);
 }
 {
