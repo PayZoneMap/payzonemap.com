@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=d7492ecb01").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=a84652f203").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -18,6 +18,14 @@ const STR = {
   companyRest: "everywhere else not listed above",
   companyUnlisted: "Not listed: {text}",
   companyOrder: "A place listed in a higher zone takes that zone.",
+  // Decided 25 Nov: a company that posts one US range (GitHub) is listed
+  // rather than left out, and says plainly that location still counts.
+  oneRangeKind: "one US range",
+  oneRangeCompanyKind: "Pay at",
+  oneRangeRank: "No zones published",
+  oneRangeBasis: "Location still counts: ",
+  oneRangeEverywhere: "everywhere in the US",
+  oneRangeMeta: "One range for the whole US; the company publishes no zones.",
   companyClear: "Show all companies",
   mapShowingAll: "Showing: all companies (typical zone)",
   mapShowing: "Showing: {company}",
@@ -215,7 +223,9 @@ function render(place, isExample) {
     tr.append(el("td", "co", co.name));
 
     const tdZ = document.createElement("td");
-    if (z.zone) {
+    if (z.zone && co.one_range) {
+      tdZ.append(el("div", "zone", z.zone), el("div", "rank", t("oneRangeRank")));
+    } else if (z.zone) {
       const pos = co.zones.indexOf(z.zone);
       tdZ.append(el("div", "zone", z.label || z.zone));
       const lad = el("div", "ladder"); lad.setAttribute("aria-hidden", "true");
@@ -257,7 +267,7 @@ function render(place, isExample) {
     // Randi, 23 Nov: it matters whether the zone follows where you live or
     // the office you'd commute to. Only the company's own wording is shown.
     const bs = el("div", "basis");
-    bs.append(el("strong", "", t("basisLabel") + STR.basis[co.basis]));
+    bs.append(el("strong", "", co.one_range ? t("oneRangeBasis") : t("basisLabel") + STR.basis[co.basis]));
     if (co.basis_quote) bs.append(" \u201c" + co.basis_quote.replace(/\.$/, "") + "\u201d");
     tdW.append(bs);
     if (co.notes) tdW.append(el("div", "note", co.notes));
@@ -406,6 +416,7 @@ const TYPICAL_COLORS = ["var(--z0)", "var(--z1)", "var(--z3)"];
 const isAll = () => !selectedCompany;
 function zoneColor(co, zone) {
   if (!zone) return "var(--znone)";
+  if (co.one_range) return "var(--z2)";
   const n = co.zones.length, i = co.zones.indexOf(zone);
   return `var(--z${n === 1 ? 0 : Math.round(i * 3 / (n - 1))})`;
 }
@@ -530,7 +541,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=676538d189").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=815db3649d").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
@@ -677,7 +688,7 @@ function showCompanyOptions() {
   cMatches.forEach((co, i) => {
     const li = el("li"); li.id = "copt-" + i; li.setAttribute("role", "option");
     li.setAttribute("aria-selected", i === cActive ? "true" : "false");
-    li.append(el("span", "", co.name), el("span", "kind", co.zones.length + " zones"));
+    li.append(el("span", "", co.name), el("span", "kind", co.one_range ? t("oneRangeKind") : co.zones.length + " zones"));
     li.addEventListener("mousedown", e => { e.preventDefault(); chooseCompany(co); });
     cList.append(li);
   });
@@ -689,12 +700,12 @@ function renderCompanyPanel() {
   panel.hidden = !selectedCompany;
   if (!selectedCompany) return;
   const co = selectedCompany, zl = DATA.zoneLists[DATA.companies.list.indexOf(co)];
-  document.getElementById("company-kind").textContent = t("companyKind");
+  document.getElementById("company-kind").textContent = t(co.one_range ? "oneRangeCompanyKind" : "companyKind");
   document.getElementById("company-name").textContent = co.name;
   const ul = document.getElementById("company-zones"); ul.replaceChildren();
   co.zones.forEach((z, i) => {
     const li = el("li"); const parts = [...zl.zones[i].metros, ...zl.zones[i].states];
-    if (zl.zones[i].rest) parts.push(t("companyRest"));
+    if (zl.zones[i].rest) parts.push(t(co.one_range ? "oneRangeEverywhere" : "companyRest"));
     const sw = el("span", "swatch"); sw.style.background = zoneColor(co, z); sw.style.display = "inline-block"; sw.style.marginRight = "0.4rem"; sw.style.verticalAlign = "-0.15rem";
     const nm = el("span", "zname"); nm.append(sw, z);
     li.append(nm, el("span", "zplaces", parts.join(" \u00b7 ")));
@@ -703,7 +714,7 @@ function renderCompanyPanel() {
   if (zl.unlisted) { const li = el("li"); li.append(el("span", "zplaces", t("companyUnlisted", { text: zl.unlisted }))); ul.append(li); }
   const meta = document.getElementById("company-meta"); meta.replaceChildren();
   const a = el("a", "", new URL(co.source).hostname.replace(/^www\./, "")); a.href = co.source; a.target = "_blank"; a.rel = "noopener";
-  meta.append(t("companyOrder") + " " + t("basisLabel") + STR.basis[co.basis] + ". ", a, " \u00b7 " + t("checked", { date: co.checked }));
+  meta.append(co.one_range ? t("oneRangeMeta") + " " : t("companyOrder") + " " + t("basisLabel") + STR.basis[co.basis] + ". ", a, " \u00b7 " + t("checked", { date: co.checked }));
 }
 function writeHash() {
   const parts = [];
