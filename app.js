@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=a84652f203").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=04d8cb6193").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -24,6 +24,7 @@ const STR = {
   oneRangeCompanyKind: "Pay at",
   oneRangeRank: "No zones published",
   oneRangeBasis: "Location still counts: ",
+  oneRangeNoLoc: "Location: their postings don't say whether it changes pay",
   oneRangeEverywhere: "everywhere in the US",
   oneRangeMeta: "One range for the whole US; the company publishes no zones.",
   companyClear: "Show all companies",
@@ -267,7 +268,7 @@ function render(place, isExample) {
     // Randi, 23 Nov: it matters whether the zone follows where you live or
     // the office you'd commute to. Only the company's own wording is shown.
     const bs = el("div", "basis");
-    bs.append(el("strong", "", co.one_range ? t("oneRangeBasis") : t("basisLabel") + STR.basis[co.basis]));
+    bs.append(el("strong", "", co.one_range ? (co.basis_quote ? t("oneRangeBasis") : t("oneRangeNoLoc")) : t("basisLabel") + STR.basis[co.basis]));
     if (co.basis_quote) bs.append(" \u201c" + co.basis_quote.replace(/\.$/, "") + "\u201d");
     tdW.append(bs);
     if (co.notes) tdW.append(el("div", "note", co.notes));
@@ -541,7 +542,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=815db3649d").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=e1f6c5177f").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
