@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=04d8cb6193").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=2897fd847f").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -27,6 +27,11 @@ const STR = {
   oneRangeNoLoc: "Location: their postings don't say whether it changes pay",
   oneRangeEverywhere: "everywhere in the US",
   oneRangeMeta: "One range for the whole US; the company publishes no zones.",
+  // Decided 25 Nov: a company that posts a range per city and no zone list
+  // (Twitch) shows its cities as places, not as a ranked scale.
+  cityRank: "Range set for this city",
+  cityKind: "{n} cities",
+  cityMeta: "Ranges are set per city; the company publishes no zone list.",
   companyClear: "Show all companies",
   mapShowingAll: "Showing: all companies (typical zone)",
   mapShowing: "Showing: {company}",
@@ -224,8 +229,8 @@ function render(place, isExample) {
     tr.append(el("td", "co", co.name));
 
     const tdZ = document.createElement("td");
-    if (z.zone && co.one_range) {
-      tdZ.append(el("div", "zone", z.zone), el("div", "rank", t("oneRangeRank")));
+    if (z.zone && (co.one_range || co.city_zones)) {
+      tdZ.append(el("div", "zone", z.zone), el("div", "rank", t(co.one_range ? "oneRangeRank" : "cityRank")));
     } else if (z.zone) {
       const pos = co.zones.indexOf(z.zone);
       tdZ.append(el("div", "zone", z.label || z.zone));
@@ -417,7 +422,7 @@ const TYPICAL_COLORS = ["var(--z0)", "var(--z1)", "var(--z3)"];
 const isAll = () => !selectedCompany;
 function zoneColor(co, zone) {
   if (!zone) return "var(--znone)";
-  if (co.one_range) return "var(--z2)";
+  if (co.one_range || co.city_zones) return "var(--z2)";
   const n = co.zones.length, i = co.zones.indexOf(zone);
   return `var(--z${n === 1 ? 0 : Math.round(i * 3 / (n - 1))})`;
 }
@@ -542,7 +547,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=e1f6c5177f").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=1dbdc743e2").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
@@ -689,7 +694,7 @@ function showCompanyOptions() {
   cMatches.forEach((co, i) => {
     const li = el("li"); li.id = "copt-" + i; li.setAttribute("role", "option");
     li.setAttribute("aria-selected", i === cActive ? "true" : "false");
-    li.append(el("span", "", co.name), el("span", "kind", co.one_range ? t("oneRangeKind") : co.zones.length + " zones"));
+    li.append(el("span", "", co.name), el("span", "kind", co.one_range ? t("oneRangeKind") : co.city_zones ? t("cityKind", { n: co.zones.length }) : co.zones.length + " zones"));
     li.addEventListener("mousedown", e => { e.preventDefault(); chooseCompany(co); });
     cList.append(li);
   });
@@ -701,7 +706,7 @@ function renderCompanyPanel() {
   panel.hidden = !selectedCompany;
   if (!selectedCompany) return;
   const co = selectedCompany, zl = DATA.zoneLists[DATA.companies.list.indexOf(co)];
-  document.getElementById("company-kind").textContent = t(co.one_range ? "oneRangeCompanyKind" : "companyKind");
+  document.getElementById("company-kind").textContent = t(co.one_range || co.city_zones ? "oneRangeCompanyKind" : "companyKind");
   document.getElementById("company-name").textContent = co.name;
   const ul = document.getElementById("company-zones"); ul.replaceChildren();
   co.zones.forEach((z, i) => {
@@ -715,7 +720,7 @@ function renderCompanyPanel() {
   if (zl.unlisted) { const li = el("li"); li.append(el("span", "zplaces", t("companyUnlisted", { text: zl.unlisted }))); ul.append(li); }
   const meta = document.getElementById("company-meta"); meta.replaceChildren();
   const a = el("a", "", new URL(co.source).hostname.replace(/^www\./, "")); a.href = co.source; a.target = "_blank"; a.rel = "noopener";
-  meta.append(co.one_range ? t("oneRangeMeta") + " " : t("companyOrder") + " " + t("basisLabel") + STR.basis[co.basis] + ". ", a, " \u00b7 " + t("checked", { date: co.checked }));
+  meta.append(co.one_range ? t("oneRangeMeta") + " " : co.city_zones ? t("cityMeta") + " " : t("companyOrder") + " " + t("basisLabel") + STR.basis[co.basis] + ". ", a, " \u00b7 " + t("checked", { date: co.checked }));
 }
 function writeHash() {
   const parts = [];
