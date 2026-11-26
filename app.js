@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=5a1eb1872d").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=f894485e4b").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -15,6 +15,13 @@ const STR = {
   companyPh: "Any company",
   companyNoMatch: "No company matches \u201c{q}\u201d yet. Suggest one at hello@payzonemap.com.",
   companyKind: "Zones at",
+  // Companies listed without zones or ranges (26 Nov), with the reason.
+  othersHeading: "Other big employers we checked",
+  othersIntro: "These companies aren't in the table above. The reason is beside each one.",
+  othersNotRead: "Their careers site doesn't allow automated reads, so we haven't read their postings.",
+  othersNoRange: "None of the {n} newest US postings we read on {date} showed a pay range.",
+  othersKindNotRead: "not read",
+  othersKindNoRange: "no pay range posted",
   companyRest: "everywhere else not listed above",
   companyUnlisted: "Not listed: {text}",
   companyOrder: "A place listed in a higher zone takes that zone.",
@@ -682,9 +689,9 @@ const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 function companySearch(q) {
   const n = norm(q.trim());
   if (!n) return [];
-  return DATA.companies.list
+  return [...DATA.companies.list, ...(DATA.others || []).map(o => ({ ...o, other: true }))]
     .map(co => { const k = norm(co.name); return [k.startsWith(n) ? 0 : k.split(/\s+/).some(w => w.startsWith(n)) ? 1 : k.includes(n) ? 2 : -1, co]; })
-    .filter(x => x[0] >= 0).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name)).map(x => x[1]);
+    .filter(x => x[0] >= 0).sort((a, b) => a[0] - b[0] || (a[1].other ? 1 : 0) - (b[1].other ? 1 : 0) || a[1].name.localeCompare(b[1].name)).map(x => x[1]);
 }
 function showCompanyOptions() {
   cList.replaceChildren();
@@ -695,8 +702,9 @@ function showCompanyOptions() {
   cMatches.forEach((co, i) => {
     const li = el("li"); li.id = "copt-" + i; li.setAttribute("role", "option");
     li.setAttribute("aria-selected", i === cActive ? "true" : "false");
-    li.append(el("span", "", co.name), el("span", "kind", co.one_range ? t("oneRangeKind") : co.city_zones ? t("cityKind", { n: co.zones.length }) : co.zones.length + " zones"));
-    li.addEventListener("mousedown", e => { e.preventDefault(); chooseCompany(co); });
+    li.append(el("span", "", co.name), el("span", "kind", co.other ? t(co.status === "not_read" ? "othersKindNotRead" : "othersKindNoRange")
+      : co.one_range ? t("oneRangeKind") : co.city_zones ? t("cityKind", { n: co.zones.length }) : co.zones.length + " zones"));
+    li.addEventListener("mousedown", e => { e.preventDefault(); co.other ? showOther(co) : chooseCompany(co); });
     cList.append(li);
   });
   cList.hidden = false; cInput.setAttribute("aria-expanded", "true");
@@ -741,11 +749,28 @@ cInput.addEventListener("input", () => {
 cInput.addEventListener("keydown", e => {
   if (e.key === "ArrowDown" && cMatches.length) { cActive = (cActive + 1) % cMatches.length; showCompanyOptions(); e.preventDefault(); }
   else if (e.key === "ArrowUp" && cMatches.length) { cActive = (cActive - 1 + cMatches.length) % cMatches.length; showCompanyOptions(); e.preventDefault(); }
-  else if (e.key === "Enter" && cActive >= 0) { chooseCompany(cMatches[cActive]); e.preventDefault(); }
+  else if (e.key === "Enter" && cActive >= 0) { const co = cMatches[cActive]; co.other ? showOther(co) : chooseCompany(co); e.preventDefault(); }
   else if (e.key === "Escape") { cList.hidden = true; cInput.setAttribute("aria-expanded", "false"); }
 });
 cInput.addEventListener("blur", () => { cList.hidden = true; cInput.setAttribute("aria-expanded", "false"); });
 document.getElementById("company-clear").addEventListener("click", () => chooseCompany(null));
+// The other companies: one line each, the reason in words and a link to the site.
+const othersList = document.getElementById("others-list");
+document.getElementById("others-heading").textContent = t("othersHeading");
+document.getElementById("others-intro").textContent = t("othersIntro");
+(DATA.others || []).forEach(o => {
+  const li = el("li"); li.id = "other-" + slug(o.name); li.tabIndex = -1;
+  const a = el("a", "", o.name); a.href = o.source; a.target = "_blank"; a.rel = "noopener";
+  li.append(a, ": " + (o.status === "not_read" ? t("othersNotRead") : t("othersNoRange", { n: o.read, date: o.checked })));
+  othersList.append(li);
+});
+document.getElementById("others-box").hidden = !(DATA.others || []).length;
+function showOther(o) {
+  cInput.value = ""; cMatches = []; cActive = -1; cList.hidden = true; cInput.setAttribute("aria-expanded", "false");
+  const box = document.getElementById("others-box"); box.open = true;
+  const li = document.getElementById("other-" + slug(o.name));
+  if (li) { li.scrollIntoView({ block: "center" }); li.focus(); }
+}
 initMap();
 input.addEventListener("input", () => { matches = search(input.value); active = matches.length ? 0 : -1; showOptions(); });
 input.addEventListener("keydown", e => {
