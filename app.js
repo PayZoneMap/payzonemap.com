@@ -147,7 +147,8 @@ const STR = {
   payCoverageCo: "At {company}, {shown} of {read} current US postings show a range we can match to a zone; {ranged} list a range at all.",
   payCoverageSummary: "How complete this is, by company",
   payCoverageLine: "{company}: {shown} of {read} current US postings shown ({ranged} list a range)",
-  payCoverageNote: "Postings without a range we can match to a zone aren't shown. We read up to 150 postings per company each week.",
+  // 500 since 26 Nov (was 150). Boards that come as one list are read whole.
+  payCoverageNote: "Postings without a range we can match to a zone aren't shown. We read up to 500 postings per company each week, or the whole board where it comes as one list.",
   payWrongSubject: "Pay range report: {company}, {title}",
   payWrongBody: "PayZoneMap shows: {title} at {company}\nLevel: {level}\nRange: {range} ({zone})\nCovers: {covers}\nPosting: {url}\n\nWhat's wrong (the level, the range, or what it covers):\n\nPage: {page}\n\n(No need to include your name or pay.)",
   coversHeading: "What a pay range covers",
@@ -547,7 +548,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=7f1f8f064d").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=5be6be4c8a").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
