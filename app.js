@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=2897fd847f").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=4d5203de14").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -29,7 +29,7 @@ const STR = {
   oneRangeMeta: "One range for the whole US; the company publishes no zones.",
   // Decided 25 Nov: a company that posts a range per city and no zone list
   // (Twitch) shows its cities as places, not as a ranked scale.
-  cityRank: "Range set for this city",
+  cityRank: "Ranges posted for cities here",
   cityKind: "{n} cities",
   cityMeta: "Ranges are set per city; the company publishes no zone list.",
   companyClear: "Show all companies",
@@ -547,7 +547,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=1dbdc743e2").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=59f1f03fa1").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
