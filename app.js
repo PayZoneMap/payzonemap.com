@@ -1,6 +1,6 @@
 // Loaded from data.json, built by the private App repo. Nothing here decides
 // a zone; see zoneFor below.
-fetch("data.json?v=4dce496f71").then(r => r.json()).then(main).catch(() => {
+fetch("data.json?v=4080322752").then(r => r.json()).then(main).catch(() => {
   document.getElementById("lede").textContent = "The zone data didn't load. Refresh the page to try again.";
 });
 
@@ -37,6 +37,7 @@ const STR = {
   // Decided 25 Nov: a company that posts a range per city and no zone list
   // (Twitch) shows its cities as places, not as a ranked scale.
   cityRank: "Ranges posted for cities here",
+  onlyZoneRank: "The only zone they post",
   cityKind: "{n} cities",
   // "or state" since 26 Nov: Roku's city-zone ranges are per state.
   cityMeta: "Ranges are set per city or state; the company publishes no zone list.",
@@ -238,8 +239,10 @@ function render(place, isExample) {
     tr.append(el("td", "co", co.name));
 
     const tdZ = document.createElement("td");
-    if (z.zone && (co.one_range || co.city_zones)) {
-      tdZ.append(el("div", "zone", z.zone), el("div", "rank", t(co.one_range ? "oneRangeRank" : "cityRank")));
+    if (z.zone && (co.one_range || co.city_zones || co.zones.length === 1)) {
+      // One zone and no "all other places" (27 Nov: Tubi's high cost labor markets,
+      // Revolution Medicines' Redwood City) isn't a scale; it read "Highest of 1 zones".
+      tdZ.append(el("div", "zone", z.zone), el("div", "rank", t(co.one_range ? "oneRangeRank" : co.city_zones ? "cityRank" : "onlyZoneRank")));
     } else if (z.zone) {
       const pos = co.zones.indexOf(z.zone);
       tdZ.append(el("div", "zone", z.label || z.zone));
@@ -556,7 +559,7 @@ function payAmountOf(s) {
   const v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
   return hr && v >= 1000 ? null : v;
 }
-fetch("pay.json?v=5f2fe7492f").then(r => r.ok ? r.json() : null).then(p => {
+fetch("pay.json?v=50d3b8f402").then(r => r.ok ? r.json() : null).then(p => {
   if (!p) return;
   PAY = p;
   payEls.role.append(new Option(t("payAny"), ""), ...p.families.map((f, i) => new Option(f, String(i))));
